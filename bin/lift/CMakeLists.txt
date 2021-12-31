@@ -13,7 +13,18 @@
 # limitations under the License.
 
 project(remill-lift)
-cmake_minimum_required(VERSION 3.2)
+
+include(FetchContent)
+
+message(STATUS "Fetching cpp-httlib...")
+FetchContent_Declare(
+	cpp-httlib
+	GIT_REPOSITORY
+		https://github.com/yhirose/cpp-httplib
+	GIT_TAG
+		v0.8.9
+)
+FetchContent_MakeAvailable(cpp-httlib)
 
 #
 # target settings
@@ -29,7 +40,7 @@ add_executable(${REMILL_LIFT}
 # target settings
 #
 
-target_link_libraries(${REMILL_LIFT} PRIVATE remill)
+target_link_libraries(${REMILL_LIFT} PRIVATE remill httplib::httplib)
 target_include_directories(${REMILL_LIFT} SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 install(

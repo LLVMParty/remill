@@ -419,9 +419,11 @@ bool StoreModuleToFile(llvm::Module *module, std::string_view file_name,
   bc.keep();
   if (!bc.os().has_error()) {
     std::string file_name_(file_name.data(), file_name.size());
+    if (FileExists(file_name_)) {
+      RemoveFile(file_name_);
+    }
     MoveFile(tmp_name, file_name_);
     return true;
-
   } else {
     RemoveFile(tmp_name);
     LOG_IF(FATAL, !allow_failure)
@@ -1359,7 +1361,7 @@ static void MoveInstructionIntoModule(llvm::Instruction *inst,
       phi->setIncomingBlock(i, incoming_block);
     }
 
-  // Substitute the called function.
+    // Substitute the called function.
   } else if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
     if (auto callee_func = call->getCalledFunction()) {
       if (callee_func->getParent() == dest_module) {
@@ -1568,7 +1570,7 @@ void MoveFunctionIntoModule(llvm::Function *func, llvm::Module *dest_module) {
     func->setName(func_name);
     dest_module->getFunctionList().push_back(func);
 
-  // TODO(pag): Probably clone it into the destination module.
+    // TODO(pag): Probably clone it into the destination module.
   } else {
     LOG(FATAL) << "TODO: Not yet supported.";
   }
@@ -2096,18 +2098,18 @@ BuildIndexes(const llvm::DataLayout &dl, llvm::Type *type, size_t offset,
         prev_elem_type = elem_type;
         continue;
 
-      // Indexing into the `i`th element.
+        // Indexing into the `i`th element.
       } else if ((offset + elem_offset) <= goal_offset) {
         indexes_out.push_back(llvm::ConstantInt::get(index_type, i, false));
         return BuildIndexes(dl, elem_type, offset + elem_offset, goal_offset,
                             indexes_out);
 
-      // We're indexing into some padding before the current element.
+        // We're indexing into some padding before the current element.
       } else if (i) {
         indexes_out.push_back(llvm::ConstantInt::get(index_type, i - 1, false));
         return {offset + prev_elem_offset, prev_elem_type};
 
-      // We're indexing into some padding at the beginning of this structure.
+        // We're indexing into some padding at the beginning of this structure.
       } else {
         return {offset, type};
       }
@@ -2164,10 +2166,9 @@ llvm::Value *BuildPointerToOffset(llvm::IRBuilder<> &ir, llvm::Value *ptr,
   } else if (auto gv = llvm::dyn_cast<llvm::GlobalValue>(ptr); gv) {
     module = gv->getParent();
 
-  // TODO(pag): Improve the API to take a `DataLayout`, perhaps.
+    // TODO(pag): Improve the API to take a `DataLayout`, perhaps.
   } else {
-    LOG(FATAL)
-        << "Unable to get the current module.";
+    LOG(FATAL) << "Unable to get the current module.";
   }
 
   auto &context = ptr->getContext();

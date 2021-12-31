@@ -16,6 +16,7 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <httplib.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/IRBuilder.h>
@@ -37,6 +38,7 @@
 #include <remill/Version/Version.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <fstream>
 #include <functional>
@@ -60,6 +62,7 @@ DEFINE_uint64(entry_address, 0,
               "Defaults to the value of --address.");
 
 DEFINE_string(bytes, "", "Hex-encoded byte string to lift.");
+DEFINE_string(bytes_server, "", "HTTP Server that can provide bytes.");
 
 DEFINE_string(ir_out, "", "Path to file where the LLVM IR should be saved.");
 DEFINE_string(bc_out, "",
@@ -71,12 +74,68 @@ DEFINE_string(slice_inputs, "",
 DEFINE_string(slice_outputs, "",
               "Comma-separated list of registers to treat as outputs.");
 
-using Memory = std::map<uint64_t, uint8_t>;
+struct MemoryReader {
+  virtual ~MemoryReader() = default;
+
+  virtual bool Read(uint64_t address, void *data, size_t size,
+                    size_t &read) = 0;
+};
+
+struct ServerMemoryReader : MemoryReader {
+  explicit ServerMemoryReader(const char *host_port) {
+    m_client = std::make_unique<httplib::Client>(host_port);
+  }
+
+  ServerMemoryReader(const ServerMemoryReader &) = delete;
+
+  bool Read(uint64_t address, void *dst, size_t size, size_t &read) override {
+    httplib::Headers headers;
+    httplib::Params params = {
+        {"address", std::to_string(address)},
+        {"size", std::to_string(size)},
+    };
+    auto res = m_client->Get("/memory", params, headers);
+    if (res->status != 200)
+      return false;
+    read = std::min(size, res->body.size());
+    memcpy(dst, res->body.data(), read);
+    return size == read;
+  }
+
+ private:
+  std::unique_ptr<httplib::Client> m_client;
+};
+
+struct BufferMemoryReader : MemoryReader {
+  BufferMemoryReader(uint64_t address, std::vector<uint8_t> data)
+      : m_address(address),
+        m_data(std::move(data)) {}
+
+  bool Read(uint64_t address, void *data, size_t size, size_t &read) override {
+    // TODO: this can be done smarter
+    read = 0;
+    auto ptr = (char *) data;
+    for (size_t i = 0; i < size; ++i) {
+      auto read_address = address + i;
+      if (read_address >= m_address &&
+          read_address < m_address + m_data.size()) {
+        ptr[i] = m_data.at(m_address - read_address);
+        read++;
+      }
+    }
+    return read == size;
+  }
+
+ private:
+  uint64_t m_address = 0;
+  std::vector<uint8_t> m_data;
+};
 
 // Unhexlify the data passed to `--bytes`, and fill in `memory` with each
 // such byte.
-static Memory UnhexlifyInputBytes(uint64_t addr_mask) {
-  Memory memory;
+static std::unique_ptr<MemoryReader> UnhexlifyInputBytes(uint64_t addr_mask) {
+  std::vector<uint8_t> data;
+  data.reserve(FLAGS_bytes.size() / 2);
 
   for (size_t i = 0; i < FLAGS_bytes.size(); i += 2) {
     char nibbles[] = {FLAGS_bytes[i], FLAGS_bytes[i + 1], '\0'};
@@ -106,17 +165,61 @@ static Memory UnhexlifyInputBytes(uint64_t addr_mask) {
       exit(EXIT_FAILURE);
     }
 
-    memory[byte_addr] = static_cast<uint8_t>(byte_val);
+    data.push_back(static_cast<uint8_t>(byte_val));
   }
 
-  return memory;
+  return std::make_unique<BufferMemoryReader>(FLAGS_address, data);
 }
+
+struct MemoryCache {
+  explicit MemoryCache(MemoryReader &reader) : m_reader(reader) {}
+
+  bool ReadByte(uint64_t address, uint8_t &byte) {
+    auto page_address = address & ~(PAGE_SIZE - 1);
+    auto itr = m_cache.find(page_address);
+    if (itr == m_cache.end()) {
+      Page page;
+      memset(page.data(), 0xCC, page.size());
+      size_t read = 0;
+      if (!m_reader.Read(page_address, page.data(), page.size(), read) &&
+          read == 0)
+        return false;
+      itr = m_cache.emplace(page_address, page).first;
+    }
+    byte = itr->second[address - page_address];
+    return true;
+  }
+
+ private:
+  static constexpr uint64_t PAGE_SIZE = 0x1000;
+  MemoryReader &m_reader;
+  using Page = std::array<uint8_t, PAGE_SIZE>;
+  std::unordered_map<uint64_t, Page> m_cache;
+};
+
+struct ScopeTimer {
+  [[nodiscard]] ScopeTimer(std::string description)
+      : m_description(std::move(description)) {
+    m_begin = std::chrono::steady_clock::now();
+  }
+
+  ~ScopeTimer() {
+    auto end = std::chrono::steady_clock::now();
+    auto ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - m_begin);
+    std::cout << m_description << ": " << ms.count() << "ms" << std::endl;
+  }
+
+  ScopeTimer(const ScopeTimer &) = delete;
+
+ private:
+  std::string m_description;
+  std::chrono::steady_clock::time_point m_begin;
+};
 
 class SimpleTraceManager : public remill::TraceManager {
  public:
-  virtual ~SimpleTraceManager(void) = default;
-
-  explicit SimpleTraceManager(Memory &memory_) : memory(memory_) {}
+  explicit SimpleTraceManager(MemoryReader &memory_) : memory(memory_) {}
 
  protected:
   // Called when we have lifted, i.e. defined the contents, of a new trace.
@@ -153,17 +256,12 @@ class SimpleTraceManager : public remill::TraceManager {
   // at address `addr` is executable and readable, and updates the byte
   // pointed to by `byte` with the read value.
   bool TryReadExecutableByte(uint64_t addr, uint8_t *byte) override {
-    auto byte_it = memory.find(addr);
-    if (byte_it != memory.end()) {
-      *byte = byte_it->second;
-      return true;
-    } else {
-      return false;
-    }
+    //ScopeTimer t("Read 1 byte");
+    return memory.ReadByte(addr, *byte);
   }
 
  public:
-  Memory &memory;
+  MemoryCache memory;
   std::unordered_map<uint64_t, llvm::Function *> traces;
 };
 
@@ -215,10 +313,19 @@ int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-
-  if (FLAGS_bytes.empty()) {
-    std::cerr << "Please specify a sequence of hex bytes to --bytes."
-              << std::endl;
+  if (!FLAGS_bytes_server.empty()) {
+    httplib::Client client(FLAGS_bytes_server.c_str());
+    auto pong = client.Get("/ping");
+    if (pong->status != 200) {
+      std::cerr << "Failed to GET " << FLAGS_bytes_server
+                << "/ping, please specify a working bytes server.\n";
+      return EXIT_FAILURE;
+    }
+    std::cout << "Using bytes server " << FLAGS_bytes_server << " ("
+              << pong->body << ")\n";
+  } else if (FLAGS_bytes.empty()) {
+    std::cerr
+        << "Please specify a sequence of hex bytes to --bytes or use --bytes_server.\n";
     return EXIT_FAILURE;
   }
 
@@ -257,8 +364,13 @@ int main(int argc, char *argv[]) {
   const auto state_ptr_type = arch->StatePointerType();
   const auto mem_ptr_type = arch->MemoryPointerType();
 
-  Memory memory = UnhexlifyInputBytes(addr_mask);
-  SimpleTraceManager manager(memory);
+  std::unique_ptr<MemoryReader> memory;
+  if (!FLAGS_bytes_server.empty())
+    memory = std::make_unique<ServerMemoryReader>(FLAGS_bytes_server.c_str());
+  else
+    memory = UnhexlifyInputBytes(addr_mask);
+
+  SimpleTraceManager manager(*memory);
   remill::IntrinsicTable intrinsics(module);
   remill::InstructionLifter inst_lifter(arch, intrinsics);
   remill::TraceLifter trace_lifter(inst_lifter, manager);
