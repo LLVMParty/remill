@@ -1,0 +1,5 @@
+build (using clang-cl vs2019 toolchain):
+-DVCPKG_ROOT=d:/Downloads/vcpkg_windows-vs2019_llvm-11_amd64 -DCMAKE_INSTALL_PREFIX=D:/CodeBlocks/remill/install_msvc2019
+
+run:
+-arch amd64_avx512 -bc_out crackmeme_main.bc -address 0x0000000140003E80 -name_register_variables -bytes_server http://127.0.0.1:63447
