@@ -285,11 +285,11 @@ index daf705731..20a03dd71 100644
  
  @endif # VERSION_5
  
-@@ -844,7 +913,13 @@ thldrlist_dec: { thrldec1 }  	is thc0000=0 & thrldec1				{ }
+@@ -844,7 +913,13 @@ thldrlist_dec: {thrldec1}			is thc0000=0 & thrldec1				{ }
  @endif # defined(VERSION_6T2) || defined(VERSION_7)
  
  # thstrlist_dec is the list of registers to be pushed
--thsdec15: pc			is thc1515=1 & pc				{ *:4 mult_addr = inst_start+4; mult_addr = mult_addr - 4; }
+-thsdec15: pc						is thc1515=1 & pc							{ *:4 mult_addr = inst_start+4; mult_addr = mult_addr - 4; }
 +thsdec15: pc			is thc1515=1 & pc				 ; remill_insn_size  { 
 +remill_please_dont_use_this_temp_name265:4=inst_start;
 +claim_eq(remill_please_dont_use_this_temp_name265, ($(INST_NEXT_PTR)-remill_insn_size));
@@ -297,9 +297,9 @@ index daf705731..20a03dd71 100644
 + mult_addr = mult_addr - 4;
 +   }
 + 
- thsdec15: 			is thc1515=0					{ }
- thsdec14: lr thsdec15		is thc1414=1 & thsdec15 & lr & thc1515=0	{ * mult_addr=lr; mult_addr = mult_addr - 4; }
- thsdec14: lr^"," thsdec15	is thc1414=1 & thsdec15 & lr			{ * mult_addr=lr; mult_addr = mult_addr - 4; }
+ thsdec15: 							is thc1515=0						{ }
+ thsdec14: lr						is thc1414=1 & thsdec15 & lr & thc1515=0	{ * mult_addr=lr; mult_addr = mult_addr - 4; }
+ thsdec14: lr,thsdec15				is thc1414=1 & thsdec15 & lr				{ * mult_addr=lr; mult_addr = mult_addr - 4; }
 @@ -931,10 +1006,13 @@ RnIndirect1: [Rn0305,"#"^immed5]	is Rn0305 & immed5	{ local tmp = Rn0305 + immed
  RnRmIndirect: [Rn0305,Rm0608]	is Rn0305 & Rm0608	{ local tmp = Rn0305 + Rm0608; export tmp; }
  

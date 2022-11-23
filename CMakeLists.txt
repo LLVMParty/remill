@@ -88,8 +88,8 @@ set(sleigh_ADDITIONAL_PATCHES "${CMAKE_CURRENT_SOURCE_DIR}/patches/sleigh/x86-ia
 
 # GHIDRA SLEIGH
 FetchContent_Declare(sleigh
-  GIT_REPOSITORY https://github.com/lifting-bits/sleigh.git
-  GIT_TAG 9966017ca00fd910f7a27e62c1024c768fad5d51
+  GIT_REPOSITORY https://github.com/mrexodia/sleigh.git
+  GIT_TAG fd5bcffe63e46edf755ad7c618a5c6507007c913
 )
 
 set(sleigh_BUILD_SUPPORT ON CACHE BOOL "" FORCE)
