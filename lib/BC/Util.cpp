@@ -708,7 +708,7 @@ LiftedFunctionArgs(llvm::BasicBlock *block, const IntrinsicTable &intrinsics) {
 void ForEachISel(llvm::Module *module, ISelCallback callback) {
   for (auto &global : module->globals()) {
     const auto &name = global.getName();
-    if (name.startswith("ISEL_") || name.startswith("COND_")) {
+    if (name.find("ISEL_") == 0 || name.find("COND_") == 0) {
       llvm::Function *sem = nullptr;
       if (global.hasInitializer()) {
         sem = llvm::dyn_cast<llvm::Function>(
@@ -1144,6 +1144,7 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#if LLVM_VERSION_MAJOR <= 17
       case llvm::Instruction::And: {
         auto ret = llvm::ConstantExpr::getAnd(
             MoveConstantIntoModule(ce->getOperand(0), dest_module, value_map,
@@ -1162,6 +1163,7 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#endif // LLVM_VERSION_MAJOR
       case llvm::Instruction::Xor: {
         auto ret = llvm::ConstantExpr::getXor(
             MoveConstantIntoModule(ce->getOperand(0), dest_module, value_map,
@@ -1171,6 +1173,7 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#if LLVM_VERSION_MAJOR <= 18
       case llvm::Instruction::ICmp: {
         auto ret = llvm::ConstantExpr::getICmp(
             ce->getPredicate(),
@@ -1181,6 +1184,8 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#endif // LLVM_VERSION_MAJOR
+#if LLVM_VERSION_MAJOR <= 18
       case llvm::Instruction::ZExt: {
         auto ret = llvm::ConstantExpr::getZExt(
             MoveConstantIntoModule(ce->getOperand(0), dest_module, value_map,
@@ -1189,6 +1194,8 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#endif // LLVM_VERSION_MAJOR
+#if LLVM_VERSION_MAJOR <= 17
       case llvm::Instruction::SExt: {
         auto ret = llvm::ConstantExpr::getSExt(
             MoveConstantIntoModule(ce->getOperand(0), dest_module, value_map,
@@ -1197,6 +1204,7 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#endif // LLVM_VERSION_MAJOR
       case llvm::Instruction::Trunc: {
         auto ret = llvm::ConstantExpr::getTrunc(
             MoveConstantIntoModule(ce->getOperand(0), dest_module, value_map,
@@ -1205,6 +1213,7 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#if LLVM_VERSION_MAJOR <= 18
       case llvm::Instruction::Shl: {
         const auto b = llvm::dyn_cast<llvm::ShlOperator>(ce);
         auto ret = llvm::ConstantExpr::getShl(
@@ -1216,6 +1225,8 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#endif
+#if LLVM_VERSION_MAJOR <= 17
       case llvm::Instruction::LShr: {
         const auto b = llvm::dyn_cast<llvm::LShrOperator>(ce);
         auto ret = llvm::ConstantExpr::getLShr(
@@ -1238,6 +1249,7 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
         moved_c = ret;
         return ret;
       }
+#endif // LLVM_VERSION_MAJOR
       case llvm::Instruction::Mul: {
         const auto b = llvm::dyn_cast<llvm::MulOperator>(ce);
         auto ret = llvm::ConstantExpr::getMul(
@@ -1291,11 +1303,16 @@ MoveConstantIntoModule(llvm::Constant *c, llvm::Module *dest_module,
           indices[i] = MoveConstantIntoModule(ce->getOperand(i + 1u),
                                               dest_module, value_map, type_map);
         }
+#if LLVM_VERSION_MAJOR >= 19
+        auto in_range = g->getInRange();
+#else
+        auto in_range = g->getInRangeIndex();
+#endif // LLVM_VERSION_MAJOR
         auto ret = llvm::ConstantExpr::getGetElementPtr(
             source_type,
             MoveConstantIntoModule(ce->getOperand(0), dest_module, value_map,
                                    type_map),
-            indices, g->isInBounds(), g->getInRangeIndex());
+            indices, g->isInBounds(), in_range);
         moved_c = ret;
         return ret;
       }

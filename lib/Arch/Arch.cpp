@@ -20,7 +20,6 @@
 #include <glog/logging.h>
 #include <llvm/ADT/APInt.h>
 #include <llvm/ADT/SmallVector.h>
-#include <llvm/IR/AttributeMask.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
@@ -695,18 +694,10 @@ void Arch::PrepareModuleDataLayout(llvm::Module *mod) const {
   // compile this bitcode back into machine code, we may want to use those
   // features, and clang will complain if we try to do so if these metadata
   // remain present.
-  auto &context = mod->getContext();
-
-  llvm::AttributeSet target_attribs;
-
-  target_attribs = target_attribs.addAttribute(context, "target-features");
-  target_attribs = target_attribs.addAttribute(context, "target-cpu");
 
   for (llvm::Function &func : *mod) {
-    auto attribs = func.getAttributes();
-    attribs = attribs.removeFnAttributes(context,
-                                         llvm::AttributeMask(target_attribs));
-    func.setAttributes(attribs);
+    func.removeFnAttr("target-features");
+    func.removeFnAttr("target-cpu");
   }
 }
 

@@ -358,11 +358,11 @@ llvm::Value *InstructionLifter::LoadWordRegValOrZero(llvm::BasicBlock *block,
 
   CHECK(val_type) << "Register " << reg_name << " expected to be an integer.";
 
-  auto val_size = val_type->getBitWidth();
-  auto word_size = word_type->getBitWidth();
+  auto val_size = val_type->getIntegerBitWidth();
+  auto word_size = word_type->getIntegerBitWidth();
   CHECK_LE(val_size, word_size)
       << "Register " << reg_name << " expected to be no larger than the "
-      << "machine word size (" << word_type->getBitWidth() << " bits).";
+      << "machine word size (" << word_type->getIntegerBitWidth() << " bits).";
 
   if (val_size < word_size) {
     val = new llvm::ZExtInst(val, word_type, llvm::Twine::createNull(), block);
@@ -595,7 +595,9 @@ llvm::Value *InstructionLifter::LiftRegisterOperand(Instruction &inst,
     if (val_size < arg_size) {
       if (arg_type->isIntegerTy()) {
         CHECK(val_type->isIntegerTy())
-            << "Expected " << arch_reg.name << " to be an integral type "
+            << "Expected " << arch_reg.name << " to be an integral type ("
+            << "val_type: " << LLVMThingToString(val_type) << ", "
+            << "arg_type: " << LLVMThingToString(arg_type) << ") "
             << "for instruction at " << std::hex << inst.pc;
 
         val =
@@ -603,7 +605,9 @@ llvm::Value *InstructionLifter::LiftRegisterOperand(Instruction &inst,
 
       } else if (arg_type->isFloatingPointTy()) {
         CHECK(val_type->isFloatingPointTy())
-            << "Expected " << arch_reg.name << " to be a floating point type "
+            << "Expected " << arch_reg.name << " to be a floating point type ("
+            << "val_type: " << LLVMThingToString(val_type) << ", "
+            << "arg_type: " << LLVMThingToString(arg_type) << ") "
             << "for instruction at " << std::hex << inst.pc;
 
         val = new llvm::FPExtInst(val, arg_type, llvm::Twine::createNull(),
@@ -613,7 +617,9 @@ llvm::Value *InstructionLifter::LiftRegisterOperand(Instruction &inst,
     } else if (val_size > arg_size) {
       if (arg_type->isIntegerTy()) {
         CHECK(val_type->isIntegerTy())
-            << "Expected " << arch_reg.name << " to be an integral type "
+            << "Expected " << arch_reg.name << " to be an integral type ("
+            << "val_type: " << LLVMThingToString(val_type) << ", "
+            << "arg_type: " << LLVMThingToString(arg_type) << ") "
             << "for instruction at " << std::hex << inst.pc;
 
         val = new llvm::TruncInst(val, arg_type, llvm::Twine::createNull(),
@@ -621,7 +627,9 @@ llvm::Value *InstructionLifter::LiftRegisterOperand(Instruction &inst,
 
       } else if (arg_type->isFloatingPointTy()) {
         CHECK(val_type->isFloatingPointTy())
-            << "Expected " << arch_reg.name << " to be a floating point type "
+            << "Expected " << arch_reg.name << " to be a floating point type ("
+            << "val_type: " << LLVMThingToString(val_type) << ", "
+            << "arg_type: " << LLVMThingToString(arg_type) << ") "
             << "for instruction at " << std::hex << inst.pc;
 
         val = new llvm::FPTruncInst(val, arg_type, llvm::Twine::createNull(),
@@ -876,8 +884,8 @@ InstructionLifter::LiftOperand(Instruction &inst, llvm::BasicBlock *block,
 
     case Operand::kTypeShiftRegister:
       CHECK(Operand::kActionRead == arch_op.action)
-          << "Can't write to a shift register operand "
-          << "for instruction at " << std::hex << inst.pc;
+          << "Can't write to a shift register operand " << "for instruction at "
+          << std::hex << inst.pc;
 
       return LiftShiftRegisterOperand(inst, block, state_ptr, arg, arch_op);
 
