@@ -30,15 +30,17 @@ else()
   set(required_cpp_standard "c++17")
 endif()
 
-add_runtime(ppc
-  SOURCES ${PPCRUNTIME_SOURCEFILES}
-  ADDRESS_SIZE 32
-  DEFINITIONS "LITTLE_ENDIAN=${little_endian}"
-  BCFLAGS "-std=${required_cpp_standard}"
-  INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
-  INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
-  ARCH ppc
+if(REMILL_ENABLE_BC_GENERATION)
+  add_runtime(ppc
+    SOURCES ${PPCRUNTIME_SOURCEFILES}
+    ADDRESS_SIZE 32
+    DEFINITIONS "LITTLE_ENDIAN=${little_endian}"
+    BCFLAGS "-std=${required_cpp_standard}"
+    INCLUDEDIRECTORIES "${REMILL_INCLUDE_DIR}" "${REMILL_SOURCE_DIR}"
+    INSTALLDESTINATION "${REMILL_INSTALL_SEMANTICS_DIR}"
+    ARCH ppc
 
-  DEPENDENCIES
-  "${REMILL_INCLUDE_DIR}/remill/Arch/PPC/Runtime/State.h"
-)
+    DEPENDENCIES
+    "${REMILL_INCLUDE_DIR}/remill/Arch/PPC/Runtime/State.h"
+  )
+endif()
