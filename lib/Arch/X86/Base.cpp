@@ -503,6 +503,15 @@ void X86ArchBase::PopulateRegisterTable(void) const {
   //  DR6
   //  DR7
 
+  REG(state, CR0, cr0.flat, u64);
+  REG(state, CR1, cr1.flat, u64);
+  REG(state, CR2, cr2.flat, u64);
+  REG(state, CR3, cr3.flat, u64);
+  REG(state, CR4, cr4.flat, u64);
+  if (64 == address_size) {
+    REG(state, CR8, cr8.flat, u64);
+  }
+
   //  REG(CR0, lat);
   //  REG(CR1, lat);
   //  REG(CR2, lat);

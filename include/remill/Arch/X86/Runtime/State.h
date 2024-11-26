@@ -765,35 +765,6 @@ static_assert(128 == sizeof(MMX), "Invalid structure packing of `MMX`.");
 
 enum : size_t { kNumVecRegisters = 32 };
 
-struct alignas(16) X86State : public ArchState {
-
-  // ArchState occupies 16 bytes.
-
-  // AVX512 has 32 vector registers, so we always include them all here for
-  // consistency across the various state structures.
-  VectorReg vec[kNumVecRegisters];  // 2048 bytes.
-
-  // Two representations of flags. Makes it easy to convert from native-to-
-  // lifted, as well as improved the optimizability of the aflags themselves.
-  ArithFlags aflag;  // 16 bytes.
-  Flags rflag;  // 8 bytes.
-  Segments seg;  // 24 bytes.
-  AddressSpace addr;  // 96 bytes.
-  GPR gpr;  // 272 bytes.
-  X87Stack st;  // 128 bytes.
-  MMX mmx;  // 128 bytes.
-  FPUStatusFlags sw;  // 24 bytes
-  XCR0 xcr0;  // 8 bytes.
-  FPU x87;  // 512 bytes
-  SegmentCaches seg_caches;  // 96 bytes
-  K_REG k_reg; // 128 bytes.
-} __attribute__((packed));
-
-static_assert((96 + 3264 + 16 + 128) == sizeof(X86State),
-              "Invalid packing of `struct State`");
-
-struct State : public X86State {};
-
 union CR0Reg {
   uint64_t flat;
   struct {
@@ -885,5 +856,40 @@ union CR8Reg {
 } __attribute__((packed));
 
 static_assert(8 == sizeof(CR8Reg), "Invalid packing of CR8Reg");
+
+struct alignas(16) X86State : public ArchState {
+
+  // ArchState occupies 16 bytes.
+
+  // AVX512 has 32 vector registers, so we always include them all here for
+  // consistency across the various state structures.
+  VectorReg vec[kNumVecRegisters];  // 2048 bytes.
+
+  // Two representations of flags. Makes it easy to convert from native-to-
+  // lifted, as well as improved the optimizability of the aflags themselves.
+  ArithFlags aflag;  // 16 bytes.
+  Flags rflag;  // 8 bytes.
+  Segments seg;  // 24 bytes.
+  AddressSpace addr;  // 96 bytes.
+  GPR gpr;  // 272 bytes.
+  X87Stack st;  // 128 bytes.
+  MMX mmx;  // 128 bytes.
+  FPUStatusFlags sw;  // 24 bytes
+  XCR0 xcr0;  // 8 bytes.
+  FPU x87;  // 512 bytes
+  SegmentCaches seg_caches;  // 96 bytes
+  K_REG k_reg; // 128 bytes.
+  CR0Reg cr0;  // 8 bytes.
+  CR1Reg cr1;  // 8 bytes.
+  CR2Reg cr2;  // 8 bytes.
+  CR3Reg cr3;  // 8 bytes.
+  CR4Reg cr4;  // 8 bytes.
+  CR8Reg cr8;  // 8 bytes.
+} __attribute__((packed));
+
+static_assert((96 + 3264 + 16 + 128 + 48) == sizeof(X86State),
+              "Invalid packing of `struct State`");
+
+struct State : public X86State {};
 
 #pragma clang diagnostic pop
