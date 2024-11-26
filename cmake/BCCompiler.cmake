@@ -22,7 +22,7 @@ set(DEFAULT_BC_COMPILER_FLAGS
 )
 
 find_package(Clang CONFIG REQUIRED)
-get_target_property(CLANG_PATH clang LOCATION)
+get_target_property(CLANG_PATH clang++ LOCATION)
 get_target_property(LLVMLINK_PATH llvm-link LOCATION)
 
 file(WRITE "${CMAKE_BINARY_DIR}/emitllvm.test.cpp" "int main(int argc, char* argv[]){return 0;}\n\n")
