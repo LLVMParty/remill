@@ -888,7 +888,6 @@ static llvm::Type *RecontextualizeType(llvm::Type *type,
     case llvm::Type::PPC_FP128TyID: return llvm::Type::getPPC_FP128Ty(context);
     case llvm::Type::LabelTyID: return llvm::Type::getLabelTy(context);
     case llvm::Type::MetadataTyID: return llvm::Type::getMetadataTy(context);
-    case llvm::Type::X86_MMXTyID: return llvm::Type::getX86_MMXTy(context);
     case llvm::Type::TokenTyID: return llvm::Type::getTokenTy(context);
     case llvm::Type::IntegerTyID: {
       auto int_type = llvm::dyn_cast<llvm::IntegerType>(type);
@@ -1826,7 +1825,7 @@ llvm::Value *LoadFromMemory(const IntrinsicTable &intrinsics,
   const auto initial_addr = addr;
   auto module = intrinsics.error->getParent();
   auto &context = module->getContext();
-  llvm::DataLayout dl(module);
+  llvm::DataLayout dl(module->getDataLayout());
   llvm::Value *args_2[2] = {mem_ptr, addr};
   auto index_type = llvm::Type::getIntNTy(context, dl.getPointerSizeInBits(0));
 
@@ -1852,10 +1851,6 @@ llvm::Value *LoadFromMemory(const IntrinsicTable &intrinsics,
       ir.CreateCall(intrinsics.read_memory_f80, args_3);
       return ir.CreateLoad(type, res);
     }
-
-    case llvm::Type::X86_MMXTyID:
-      return ir.CreateBitCast(ir.CreateCall(intrinsics.read_memory_64, args_2),
-                              type);
 
     case llvm::Type::IntegerTyID:
       switch (dl.getTypeAllocSize(type)) {
@@ -2000,7 +1995,7 @@ llvm::Value *StoreToMemory(const IntrinsicTable &intrinsics,
   const auto initial_addr = addr;
   auto module = intrinsics.error->getParent();
   auto &context = module->getContext();
-  llvm::DataLayout dl(module);
+  llvm::DataLayout dl(module->getDataLayout());
   llvm::Value *args_3[3] = {mem_ptr, addr, val_to_store};
   auto index_type = llvm::Type::getInt32Ty(context);
 
@@ -2030,12 +2025,6 @@ llvm::Value *StoreToMemory(const IntrinsicTable &intrinsics,
       (void) ir.CreateStore(fp80_value, res);
       args_3[2] = res;
       return ir.CreateCall(intrinsics.write_memory_f80, args_3);
-    }
-
-    case llvm::Type::X86_MMXTyID: {
-      auto i64_type = llvm::Type::getInt64Ty(context);
-      args_3[2] = ir.CreateBitCast(val_to_store, i64_type);
-      return ir.CreateCall(intrinsics.write_memory_64, args_3);
     }
 
     case llvm::Type::IntegerTyID:

@@ -385,7 +385,7 @@ llvm::Value *InstructionLifter::LiftShiftRegisterOperand(
       << "Expected " << arch_reg.name << " to be an integral type "
       << "for instruction at " << std::hex << inst.pc;
 
-  const llvm::DataLayout data_layout(module);
+  const llvm::DataLayout data_layout(module->getDataLayout());
   auto reg = LoadRegValue(block, state_ptr, arch_reg.name);
   auto reg_type = reg->getType();
   auto reg_size = data_layout.getTypeSizeInBits(reg_type).getFixedValue();
@@ -581,7 +581,7 @@ llvm::Value *InstructionLifter::LiftRegisterOperand(Instruction &inst,
 
     auto val = LoadRegValue(block, state_ptr, arch_reg.name);
 
-    const llvm::DataLayout data_layout(module);
+    const llvm::DataLayout data_layout(module->getDataLayout());
     auto val_type = val->getType();
     auto val_size = data_layout.getTypeAllocSizeInBits(val_type);
     auto arg_size = data_layout.getTypeAllocSizeInBits(arg_type);
@@ -683,7 +683,7 @@ llvm::Value *InstructionLifter::LiftExpressionOperand(Instruction &inst,
         << "Expected " << op.Serialize() << " to be an integral or float type "
         << "for instruction at " << std::hex << inst.pc;
 
-    const llvm::DataLayout data_layout(module);
+    const llvm::DataLayout data_layout(module->getDataLayout());
     auto val_type = val->getType();
     auto val_size = data_layout.getTypeAllocSizeInBits(val_type);
     auto arg_size = data_layout.getTypeAllocSizeInBits(arg_type);
