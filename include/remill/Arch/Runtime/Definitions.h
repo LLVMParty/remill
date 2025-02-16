@@ -17,6 +17,9 @@
 #pragma once
 
 #ifndef ADDRESS_SIZE_BITS
+#  ifndef INCLUDED_FROM_REMILL
+#    error ADDRESS_SIZE_BITS not defined!
+#  endif
 #  define ADDRESS_SIZE_BITS 64UL
 #endif
 

@@ -41,6 +41,7 @@ static_assert(10 == sizeof(bcd80_t), "Invalid `bcd80_t` size.");
 // registers, so we want to model that behavior.
 typedef RnW<uint8_t> R8W;
 typedef RnW<uint16_t> R16W;
+// TODO: this is defining the incorrect size
 typedef RnW<IF_64BIT_ELSE(uint64_t, uint32_t)> R32W;  // AMD64-ism.
 typedef RnW<uint64_t> R64W;
 

@@ -3,9 +3,9 @@
 #include <remill/Arch/Arch.h>
 #include <remill/Arch/ArchBase.h>
 // clang-format off
-#define HAS_FEATURE_AVX 1
-#define HAS_FEATURE_AVX512 1
-#define ADDRESS_SIZE_BITS 64
+//#define HAS_FEATURE_AVX 1
+//#define HAS_FEATURE_AVX512 1
+//#define ADDRESS_SIZE_BITS 64
 #define INCLUDED_FROM_REMILL
 #include <remill/Arch/X86/Runtime/State.h>
 // clang-format on
