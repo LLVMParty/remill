@@ -16,6 +16,8 @@
 
 #include "InstructionLifter.h"
 
+#include <llvm/Demangle/Demangle.h>
+
 namespace remill {
 namespace {
 
@@ -87,6 +89,10 @@ LiftStatus InstructionLifter::LiftIntoBlock(Instruction &arch_inst,
                                             llvm::BasicBlock *block,
                                             llvm::Value *state_ptr,
                                             bool is_delayed) {
+
+  llvm::outs() << "LiftIntoBlock\n";
+  llvm::outs() << "  " << arch_inst.Serialize() << "\n";
+
   llvm::Function *const func = block->getParent();
   llvm::Module *const module = func->getParent();
   llvm::Function *isel_func = nullptr;
@@ -114,6 +120,12 @@ LiftStatus InstructionLifter::LiftIntoBlock(Instruction &arch_inst,
     arch_inst.operands.clear();
     status = kLiftedUnsupportedInstruction;
   }
+
+  auto name = isel_func->getName();
+  auto demangled = llvm::demangle(name.str());
+  llvm::outs() << "  isel_func: " << isel_func->getName() << "\n";
+  llvm::outs() << "             " << demangled << "\n";
+  llvm::outs() << *isel_func << "\n";
 
   llvm::IRBuilder<> ir(block);
   const auto [mem_ptr_ref, mem_ptr_ref_type] =
