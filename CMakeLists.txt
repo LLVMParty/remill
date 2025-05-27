@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.31)
 
 # Setup to use ccache
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/ccache.cmake")
@@ -222,8 +222,8 @@ target_compile_definitions(remill_settings INTERFACE
   "REMILL_BUILD_SEMANTICS_DIR_PPC64_32ADDR=\"${REMILL_BUILD_SEMANTICS_DIR_PPC64_32ADDR}\""
 )
 
-set(ghidra_patch_user "github-actions[bot]")
-set(ghidra_patch_email "41898282+github-actions[bot]@users.noreply.github.com")
+set(ghidra_patch_user "github-actions")
+set(ghidra_patch_email "github-actions@users.noreply.github.com")
 
 # pinned stable patches list
 set(ghidra_patches
@@ -235,7 +235,6 @@ list(APPEND ghidra_patches ${sleigh_ADDITIONAL_PATCHES})
 FetchContent_Declare(ghidra-fork
   GIT_REPOSITORY https://github.com/trail-of-forks/ghidra.git
   GIT_TAG e7196d8
-  ${ghidra_patches}
 )
 
 FetchContent_MakeAvailable(ghidra-fork)
