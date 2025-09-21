@@ -51,6 +51,8 @@ endif()
 set(add_runtime_usage "add_runtime(target_name SOURCES <src1 src2> ADDRESS_SIZE <size> DEFINITIONS <def1 def2> BCFLAGS <bcflag1 bcflag2> LINKERFLAGS <lnkflag1 lnkflag2> INCLUDEDIRECTORIES <path1 path2> INSTALLDESTINATION <path> DEPENDENCIES <dependency1 dependency2>")
 
 function(add_runtime target_name)
+  set(BUILD_COMMANDS "")
+
   if(NOT DEFINED CMAKE_BC_COMPILER)
     message(FATAL_ERROR "The bitcode compiler was not found!")
   endif()
@@ -194,8 +196,10 @@ function(add_runtime target_name)
       COMMAND "${CMAKE_BC_COMPILER}" ${include_directory_list} ${additional_windows_settings} ${target_decl}  "-DADDRESS_SIZE_BITS=${address_size}" ${definition_list} ${DEFAULT_BC_COMPILER_FLAGS} ${bc_flag_list} ${source_file_option_list} -c "${absolute_source_file_path}" -o "${absolute_output_file_path}"
       MAIN_DEPENDENCY "${absolute_source_file_path}"
       ${dependency_list_directive}
-      COMMENT "Building BC object ${absolute_output_file_path}"
+      COMMENT "Building BC object: \"${CMAKE_BC_COMPILER}\" ${include_directory_list} ${additional_windows_settings} ${target_decl}  \"-DADDRESS_SIZE_BITS=${address_size}\" ${definition_list} ${DEFAULT_BC_COMPILER_FLAGS} ${bc_flag_list} ${source_file_option_list} -c \"${absolute_source_file_path}\" -o \"${absolute_output_file_path}\""
     )
+
+    set(BUILD_COMMANDS "${BUILD_COMMANDS}\"${CMAKE_BC_COMPILER}\" ${include_directory_list} ${additional_windows_settings} ${target_decl}  \"-DADDRESS_SIZE_BITS=${address_size}\" ${definition_list} ${DEFAULT_BC_COMPILER_FLAGS} ${bc_flag_list} ${source_file_option_list} -c \"${absolute_source_file_path}\" -o \"${absolute_output_file_path}\"\n")
 
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${absolute_output_file_path}")
     list(APPEND bitcode_file_list "${absolute_output_file_path}")
@@ -212,6 +216,9 @@ function(add_runtime target_name)
     DEPENDS ${bitcode_file_list}
     COMMENT "Linking BC runtime ${absolute_target_path}"
   )
+  set(BUILD_COMMANDS "${BUILD_COMMANDS}\"${CMAKE_BC_LINKER}\" ${linker_flag_list} ${bitcode_file_list} -o \"${absolute_target_path}\"\n")
+  string(REPLACE ";" " " BUILD_COMMANDS "${BUILD_COMMANDS}")
+  file(WRITE "${CMAKE_BINARY_DIR}/runtimes/${target_name}.txt" "${BUILD_COMMANDS}")
 
   set(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${absolute_target_path}")
 
