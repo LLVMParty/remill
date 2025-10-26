@@ -1,0 +1,4 @@
+{
+    "name": "remill",
+    "image": "ghcr.io/llvmparty/packages/ubuntu:22.04-llvm17.0.6"
+}
