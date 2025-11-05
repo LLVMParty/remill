@@ -460,6 +460,7 @@ ControlFlowStructureAnalysis::ComputeCategory(
       return ExtractConditionalAbnormal(flows, ops);
     case CoarseCategory::kCatNormal: return ExtractNormal(flows, ops);
   }
+  __builtin_unreachable();
 }
 
 std::optional<std::string>

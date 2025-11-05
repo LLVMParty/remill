@@ -67,8 +67,8 @@ class PointerType;
 }  // namespace llvm.
 namespace remill {
 
-enum OSName : uint32_t;
-enum ArchName : uint32_t;
+enum class OSName : uint32_t;
+enum class ArchName : uint32_t;
 
 class Arch;
 class Instruction;

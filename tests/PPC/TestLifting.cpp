@@ -185,7 +185,7 @@ class TestSpecRunner {
  public:
   TestSpecRunner(llvm::LLVMContext &context)
       : lifter(test_runner::LiftingTester(context, remill::OSName::kOSLinux,
-                                          remill::kArchPPC)),
+                                          remill::ArchName::kArchPPC)),
         tst_ctr(0),
         endian(lifter.GetArch()->MemoryAccessIsLittleEndian()
                    ? llvm::endianness::little

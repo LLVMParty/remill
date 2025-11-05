@@ -308,9 +308,9 @@ Instruction::Instruction(void)
       delayed_pc(0),
       branch_taken_pc(0),
       branch_not_taken_pc(0),
-      arch_name(kArchInvalid),
-      sub_arch_name(kArchInvalid),
-      branch_taken_arch_name(kArchInvalid),
+      arch_name(ArchName::kArchInvalid),
+      sub_arch_name(ArchName::kArchInvalid),
+      branch_taken_arch_name(ArchName::kArchInvalid),
       arch(nullptr),
       is_atomic_read_modify_write(false),
       has_branch_taken_delay_slot(false),
@@ -325,9 +325,9 @@ void Instruction::Reset(void) {
   delayed_pc = 0;
   branch_taken_pc = 0;
   branch_not_taken_pc = 0;
-  arch_name = kArchInvalid;
-  sub_arch_name = kArchInvalid;
-  branch_taken_arch_name = kArchInvalid;
+  arch_name = ArchName::kArchInvalid;
+  sub_arch_name = ArchName::kArchInvalid;
+  branch_taken_arch_name = ArchName::kArchInvalid;
   is_atomic_read_modify_write = false;
   has_branch_taken_delay_slot = false;
   has_branch_not_taken_delay_slot = false;
@@ -491,7 +491,7 @@ Operand &Instruction::EmplaceOperand(const Operand::ShiftRegister &shift_op) {
       // to shift a register value into the carry out operands.
       // for example: andseq r3, sl, r0, lsr #32
       CHECK(shift_size < op.size ||
-            (shift_size <= op.size && arch_name == kArchAArch32LittleEndian &&
+            (shift_size <= op.size && arch_name == ArchName::kArchAArch32LittleEndian &&
              shift_op.can_shift_op_size))
           << "Shift of size " << shift_size
           << " is wider than the base register size in shift register in "
@@ -656,23 +656,23 @@ std::string Instruction::Serialize(void) const {
 
   auto stream_arch = [&ss](ArchName an) {
     switch (an) {
-      case kArchInvalid: ss << "INVALID"; break;
-      case kArchAMD64:
-      case kArchAMD64_AVX:
-      case kArchAMD64_AVX512:
-      case kArchAMD64_SLEIGH: ss << "AMD64"; break;
-      case kArchX86:
-      case kArchX86_AVX:
-      case kArchX86_AVX512:
-      case kArchX86_SLEIGH: ss << "X86"; break;
-      case kArchThumb2LittleEndian: ss << "Thumb2"; break;
-      case kArchAArch32LittleEndian: ss << "AArch32"; break;
-      case kArchAArch64LittleEndian_SLEIGH:
-      case kArchAArch64LittleEndian: ss << "AArch64"; break;
-      case kArchSparc32_SLEIGH:
-      case kArchSparc32: ss << "SPARC32"; break;
-      case kArchSparc64: ss << "SPARC64"; break;
-      case kArchPPC: ss << "PowerPC"; break;
+      case ArchName::kArchInvalid: ss << "INVALID"; break;
+      case ArchName::kArchAMD64:
+      case ArchName::kArchAMD64_AVX:
+      case ArchName::kArchAMD64_AVX512:
+      case ArchName::kArchAMD64_SLEIGH: ss << "AMD64"; break;
+      case ArchName::kArchX86:
+      case ArchName::kArchX86_AVX:
+      case ArchName::kArchX86_AVX512:
+      case ArchName::kArchX86_SLEIGH: ss << "X86"; break;
+      case ArchName::kArchThumb2LittleEndian: ss << "Thumb2"; break;
+      case ArchName::kArchAArch32LittleEndian: ss << "AArch32"; break;
+      case ArchName::kArchAArch64LittleEndian_SLEIGH:
+      case ArchName::kArchAArch64LittleEndian: ss << "AArch64"; break;
+      case ArchName::kArchSparc32_SLEIGH:
+      case ArchName::kArchSparc32: ss << "SPARC32"; break;
+      case ArchName::kArchSparc64: ss << "SPARC64"; break;
+      case ArchName::kArchPPC: ss << "PowerPC"; break;
     }
   };
 
@@ -688,11 +688,11 @@ std::string Instruction::Serialize(void) const {
   if (sub_arch_name != arch_name) {
     switch (arch_name) {
       default: break;
-      case kArchAMD64_AVX: ss << ":AVX"; break;
-      case kArchAMD64_AVX512: ss << ":AVX512"; break;
-      case kArchX86_AVX: ss << ":AVX"; break;
-      case kArchX86_AVX512: ss << ":AVX512"; break;
-      case kArchThumb2LittleEndian: ss << ":Thumb2"; break;
+      case ArchName::kArchAMD64_AVX: ss << ":AVX"; break;
+      case ArchName::kArchAMD64_AVX512: ss << ":AVX512"; break;
+      case ArchName::kArchX86_AVX: ss << ":AVX"; break;
+      case ArchName::kArchX86_AVX512: ss << ":AVX512"; break;
+      case ArchName::kArchThumb2LittleEndian: ss << ":Thumb2"; break;
     }
   }
 

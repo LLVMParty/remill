@@ -190,7 +190,7 @@ bool SPARC32Arch::ArchDecodeInstruction(uint64_t address,
 // TODO(pag): We pretend that these are singletons, but they aren't really!
 Arch::ArchPtr Arch::GetSPARC32(llvm::LLVMContext *context_, OSName os_name_,
                              ArchName arch_name_) {
-  if (arch_name_ == kArchSparc32) {
+  if (arch_name_ == ArchName::kArchSparc32) {
     return std::make_unique<sparc::SPARC32Arch>(context_, os_name_, arch_name_);
 
   } else {

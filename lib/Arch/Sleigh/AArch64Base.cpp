@@ -64,8 +64,8 @@ void AArch64ArchBase::FinishLiftedFunctionInitialization(
 llvm::Triple AArch64ArchBase::Triple(void) const {
   auto triple = BasicTriple();
   switch (arch_name) {
-    case kArchAArch64LittleEndian_SLEIGH:
-    case kArchAArch64LittleEndian: triple.setArch(llvm::Triple::aarch64); break;
+    case ArchName::kArchAArch64LittleEndian_SLEIGH:
+    case ArchName::kArchAArch64LittleEndian: triple.setArch(llvm::Triple::aarch64); break;
 
     default:
       LOG(FATAL) << "Cannot get triple for non-AArch64 architecture "
@@ -78,8 +78,8 @@ llvm::Triple AArch64ArchBase::Triple(void) const {
 llvm::DataLayout AArch64ArchBase::DataLayout(void) const {
   std::string dl;
   switch (arch_name) {
-    case kArchAArch64LittleEndian:
-    case kArchAArch64LittleEndian_SLEIGH:
+    case ArchName::kArchAArch64LittleEndian:
+    case ArchName::kArchAArch64LittleEndian_SLEIGH:
       dl = "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
       break;
 

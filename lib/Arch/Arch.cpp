@@ -46,25 +46,25 @@ namespace {
 
 static unsigned AddressSize(ArchName arch_name) {
   switch (arch_name) {
-    case kArchInvalid:
+    case ArchName::kArchInvalid:
       LOG(FATAL) << "Cannot get address size for invalid arch.";
       return 0;
-    case kArchX86:
-    case kArchX86_AVX:
-    case kArchX86_AVX512:
-    case kArchX86_SLEIGH:
-    case kArchAArch32LittleEndian:
-    case kArchThumb2LittleEndian:
-    case kArchSparc32:
-    case kArchSparc32_SLEIGH:
-    case kArchPPC: return 32;
-    case kArchAMD64:
-    case kArchAMD64_AVX:
-    case kArchAMD64_AVX512:
-    case kArchAMD64_SLEIGH:
-    case kArchAArch64LittleEndian:
-    case kArchAArch64LittleEndian_SLEIGH:
-    case kArchSparc64: return 64;
+    case ArchName::kArchX86:
+    case ArchName::kArchX86_AVX:
+    case ArchName::kArchX86_AVX512:
+    case ArchName::kArchX86_SLEIGH:
+    case ArchName::kArchAArch32LittleEndian:
+    case ArchName::kArchThumb2LittleEndian:
+    case ArchName::kArchSparc32:
+    case ArchName::kArchSparc32_SLEIGH:
+    case ArchName::kArchPPC: return 32;
+    case ArchName::kArchAMD64:
+    case ArchName::kArchAMD64_AVX:
+    case ArchName::kArchAMD64_AVX512:
+    case ArchName::kArchAMD64_SLEIGH:
+    case ArchName::kArchAArch64LittleEndian:
+    case ArchName::kArchAArch64LittleEndian_SLEIGH:
+    case ArchName::kArchSparc64: return 64;
   }
   return 0;
 }
@@ -123,30 +123,30 @@ ArchLocker Arch::Lock(ArchName arch_name_) {
 llvm::Triple Arch::BasicTriple(void) const {
   llvm::Triple triple;
   switch (os_name) {
-    case kOSInvalid: LOG(FATAL) << "Cannot get triple OS."; break;
+    case OSName::kOSInvalid: LOG(FATAL) << "Cannot get triple OS."; break;
 
-    case kOSLinux:
+    case OSName::kOSLinux:
       triple.setOS(llvm::Triple::Linux);
       triple.setEnvironment(llvm::Triple::GNU);
       triple.setVendor(llvm::Triple::PC);
       triple.setObjectFormat(llvm::Triple::ELF);
       break;
 
-    case kOSmacOS:
+    case OSName::kOSmacOS:
       triple.setOS(llvm::Triple::MacOSX);
       triple.setEnvironment(llvm::Triple::UnknownEnvironment);
       triple.setVendor(llvm::Triple::Apple);
       triple.setObjectFormat(llvm::Triple::MachO);
       break;
 
-    case kOSWindows:
+    case OSName::kOSWindows:
       triple.setOS(llvm::Triple::Win32);
       triple.setEnvironment(llvm::Triple::MSVC);
       triple.setVendor(llvm::Triple::UnknownVendor);
       triple.setObjectFormat(llvm::Triple::COFF);
       break;
 
-    case kOSSolaris:
+    case OSName::kOSSolaris:
       triple.setOS(llvm::Triple::Solaris);
       triple.setEnvironment(llvm::Triple::UnknownEnvironment);
       triple.setVendor(llvm::Triple::UnknownVendor);
@@ -160,88 +160,88 @@ llvm::Triple Arch::BasicTriple(void) const {
 auto Arch::GetArchByName(llvm::LLVMContext *context_, OSName os_name_,
                          ArchName arch_name_) -> ArchPtr {
   switch (arch_name_) {
-    case kArchInvalid:
+    case ArchName::kArchInvalid:
       LOG(FATAL) << "Unrecognized architecture.";
       return nullptr;
 
-    case kArchAArch64LittleEndian_SLEIGH: {
+    case ArchName::kArchAArch64LittleEndian_SLEIGH: {
       DLOG(INFO)
           << "Using architecture: AArch64 Sleigh, feature set: Little Endian";
       return GetAArch64Sleigh(context_, os_name_, arch_name_);
     }
 
-    case kArchAArch64LittleEndian: {
+    case ArchName::kArchAArch64LittleEndian: {
       DLOG(INFO) << "Using architecture: AArch64, feature set: Little Endian";
       return GetAArch64(context_, os_name_, arch_name_);
     }
 
-    case kArchAArch32LittleEndian: {
+    case ArchName::kArchAArch32LittleEndian: {
       DLOG(INFO) << "Using architecture: AArch32, feature set: Little Endian";
       return GetAArch32(context_, os_name_, arch_name_);
       break;
     }
 
-    case kArchThumb2LittleEndian: {
+    case ArchName::kArchThumb2LittleEndian: {
       DLOG(INFO) << "Using architecture: thumb2";
       return GetSleighThumb2(context_, os_name_, arch_name_);
     }
 
-    case kArchX86: {
+    case ArchName::kArchX86: {
       DLOG(INFO) << "Using architecture: X86";
       return GetX86(context_, os_name_, arch_name_);
     }
 
-    case kArchX86_SLEIGH: {
+    case ArchName::kArchX86_SLEIGH: {
       DLOG(INFO) << "Using architecture: X86_Sleigh";
       return GetSleighX86(context_, os_name_, arch_name_);
     }
 
-    case kArchAMD64_SLEIGH: {
+    case ArchName::kArchAMD64_SLEIGH: {
       DLOG(INFO) << "Using architecture: X86_Sleigh";
       return GetSleighX86(context_, os_name_, arch_name_);
     }
 
-    case kArchX86_AVX: {
+    case ArchName::kArchX86_AVX: {
       DLOG(INFO) << "Using architecture: X86, feature set: AVX";
       return GetX86(context_, os_name_, arch_name_);
     }
 
-    case kArchX86_AVX512: {
+    case ArchName::kArchX86_AVX512: {
       DLOG(INFO) << "Using architecture: X86, feature set: AVX512";
       return GetX86(context_, os_name_, arch_name_);
     }
 
-    case kArchAMD64: {
+    case ArchName::kArchAMD64: {
       DLOG(INFO) << "Using architecture: AMD64";
       return GetX86(context_, os_name_, arch_name_);
     }
 
-    case kArchAMD64_AVX: {
+    case ArchName::kArchAMD64_AVX: {
       DLOG(INFO) << "Using architecture: AMD64, feature set: AVX";
       return GetX86(context_, os_name_, arch_name_);
     }
 
-    case kArchAMD64_AVX512: {
+    case ArchName::kArchAMD64_AVX512: {
       DLOG(INFO) << "Using architecture: AMD64, feature set: AVX512";
       return GetX86(context_, os_name_, arch_name_);
     }
 
-    case kArchSparc32: {
+    case ArchName::kArchSparc32: {
       DLOG(INFO) << "Using architecture: 32-bit SPARC";
       return GetSPARC32(context_, os_name_, arch_name_);
     }
 
-    case kArchSparc64: {
+    case ArchName::kArchSparc64: {
       DLOG(INFO) << "Using architecture: 64-bit SPARC";
       return GetSPARC64(context_, os_name_, arch_name_);
     }
 
-    case kArchSparc32_SLEIGH: {
+    case ArchName::kArchSparc32_SLEIGH: {
       DLOG(INFO) << "Using architecture: 32-bit SPARC32_Sleigh";
       return GetSPARC32Sleigh(context_, os_name_, arch_name_);
     }
 
-    case kArchPPC: {
+    case ArchName::kArchPPC: {
       DLOG(INFO) << "Using architecture: PowerPC";
       return GetSleighPPC(context_, os_name_, arch_name_);
     }
@@ -389,58 +389,58 @@ remill::Arch::ArchPtr Arch::GetModuleArch(const llvm::Module &module) {
 
 bool Arch::IsX86(void) const {
   switch (arch_name) {
-    case remill::kArchX86:
-    case remill::kArchX86_AVX:
-    case remill::kArchX86_AVX512:
-    case remill::kArchX86_SLEIGH: return true;
+    case remill::ArchName::kArchX86:
+    case remill::ArchName::kArchX86_AVX:
+    case remill::ArchName::kArchX86_AVX512:
+    case remill::ArchName::kArchX86_SLEIGH: return true;
     default: return false;
   }
 }
 
 bool Arch::IsAMD64(void) const {
   switch (arch_name) {
-    case remill::kArchAMD64:
-    case remill::kArchAMD64_AVX:
-    case remill::kArchAMD64_AVX512:
-    case remill::kArchAMD64_SLEIGH: return true;
+    case remill::ArchName::kArchAMD64:
+    case remill::ArchName::kArchAMD64_AVX:
+    case remill::ArchName::kArchAMD64_AVX512:
+    case remill::ArchName::kArchAMD64_SLEIGH: return true;
     default: return false;
   }
 }
 
 bool Arch::IsAArch32(void) const {
-  return remill::kArchAArch32LittleEndian == arch_name;
+  return remill::ArchName::kArchAArch32LittleEndian == arch_name;
 }
 
 bool Arch::IsAArch64(void) const {
-  return remill::kArchAArch64LittleEndian == arch_name;
+  return remill::ArchName::kArchAArch64LittleEndian == arch_name;
 }
 
 bool Arch::IsSPARC32(void) const {
-  return remill::kArchSparc32 == arch_name;
+  return remill::ArchName::kArchSparc32 == arch_name;
 }
 
 bool Arch::IsSPARC64(void) const {
-  return remill::kArchSparc64 == arch_name;
+  return remill::ArchName::kArchSparc64 == arch_name;
 }
 
 bool Arch::IsPPC(void) const {
-  return remill::kArchPPC == arch_name;
+  return remill::ArchName::kArchPPC == arch_name;
 }
 
 bool Arch::IsWindows(void) const {
-  return remill::kOSWindows == os_name;
+  return remill::OSName::kOSWindows == os_name;
 }
 
 bool Arch::IsLinux(void) const {
-  return remill::kOSLinux == os_name;
+  return remill::OSName::kOSLinux == os_name;
 }
 
 bool Arch::IsMacOS(void) const {
-  return remill::kOSmacOS == os_name;
+  return remill::OSName::kOSmacOS == os_name;
 }
 
 bool Arch::IsSolaris(void) const {
-  return remill::kOSSolaris == os_name;
+  return remill::OSName::kOSSolaris == os_name;
 }
 
 namespace {

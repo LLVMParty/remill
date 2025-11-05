@@ -37,8 +37,8 @@ class SleighX86Decoder final : public SleighDecoder {
   SleighX86Decoder() = delete;
   SleighX86Decoder(const remill::Arch &arch)
       : SleighDecoder(
-            arch, kArchX86_SLEIGH == arch.arch_name ? "x86.sla" : "x86-64.sla",
-            kArchX86_SLEIGH == arch.arch_name ? "x86.pspec" : "x86-64.pspec",
+            arch, ArchName::kArchX86_SLEIGH == arch.arch_name ? "x86.sla" : "x86-64.sla",
+            ArchName::kArchX86_SLEIGH == arch.arch_name ? "x86.pspec" : "x86-64.pspec",
             ContextRegMappings({}, {}), {}) {}
 
   // The x86 default context is sufficient. No context register assignments are required.

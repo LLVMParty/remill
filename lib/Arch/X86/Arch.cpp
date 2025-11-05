@@ -47,8 +47,8 @@ static const xed_state_t kXEDState64 = {XED_MACHINE_MODE_LONG_64,
                                         XED_ADDRESS_WIDTH_64b};
 
 static bool Is64Bit(ArchName arch_name) {
-  return kArchAMD64 == arch_name || kArchAMD64_AVX == arch_name ||
-         kArchAMD64_AVX512 == arch_name;
+  return ArchName::kArchAMD64 == arch_name || ArchName::kArchAMD64_AVX == arch_name ||
+         ArchName::kArchAMD64_AVX512 == arch_name;
 }
 
 static bool IsFunctionReturn(const xed_decoded_inst_t *xedd) {
@@ -998,7 +998,7 @@ bool X86Arch::ArchDecodeInstruction(uint64_t address,
   inst.pc = address;
   inst.arch = this;
   inst.arch_name = arch_name;
-  inst.sub_arch_name = kArchInvalid;
+  inst.sub_arch_name = ArchName::kArchInvalid;
   inst.branch_taken_arch_name = arch_name;
   inst.category = Instruction::kCategoryInvalid;
   inst.operands.clear();
@@ -1022,16 +1022,16 @@ bool X86Arch::ArchDecodeInstruction(uint64_t address,
   // Re-classify this instruction to its sub-architecture.
   if (IsAVX512(isa_set, category)) {
     inst.sub_arch_name =
-        32 == address_size ? kArchX86_AVX512 : kArchAMD64_AVX512;
+        32 == address_size ? ArchName::kArchX86_AVX512 : ArchName::kArchAMD64_AVX512;
   } else if (IsAVX(isa_set, category)) {
-    inst.sub_arch_name = 32 == address_size ? kArchX86_AVX : kArchAMD64_AVX;
+    inst.sub_arch_name = 32 == address_size ? ArchName::kArchX86_AVX : ArchName::kArchAMD64_AVX;
   } else if (xed_classify_avx512(xedd) || xed_classify_avx512_maskop(xedd)) {
     inst.sub_arch_name =
-        32 == address_size ? kArchX86_AVX512 : kArchAMD64_AVX512;
+        32 == address_size ? ArchName::kArchX86_AVX512 : ArchName::kArchAMD64_AVX512;
   } else if (xed_classify_avx(xedd)) {
-    inst.sub_arch_name = 32 == address_size ? kArchX86_AVX : kArchAMD64_AVX;
+    inst.sub_arch_name = 32 == address_size ? ArchName::kArchX86_AVX : ArchName::kArchAMD64_AVX;
   } else {
-    inst.sub_arch_name = 32 == address_size ? kArchX86 : kArchAMD64;
+    inst.sub_arch_name = 32 == address_size ? ArchName::kArchX86 : ArchName::kArchAMD64;
   }
 
   // Make sure we know about

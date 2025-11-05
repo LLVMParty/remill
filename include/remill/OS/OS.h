@@ -58,7 +58,7 @@ class Triple;
 }  // namespace llvm
 namespace remill {
 
-enum OSName : uint32_t {
+enum class OSName : uint32_t {
   kOSInvalid,
   kOSmacOS,
   kOSLinux,

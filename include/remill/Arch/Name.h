@@ -97,30 +97,30 @@ class Triple;
 }  // namespace llvm
 namespace remill {
 
-enum ArchName : uint32_t {
-  kArchInvalid,
+enum class ArchName : uint32_t {
+  kInvalid,
 
-  kArchX86,
-  kArchX86_AVX,
-  kArchX86_AVX512,
-  kArchX86_SLEIGH,
+  kX86,
+  kX86_AVX,
+  kX86_AVX512,
+  kX86_SLEIGH,
 
-  kArchAMD64,
-  kArchAMD64_AVX,
-  kArchAMD64_AVX512,
-  kArchAMD64_SLEIGH,
+  kAMD64,
+  kAMD64_AVX,
+  kAMD64_AVX512,
+  kAMD64_SLEIGH,
 
-  kArchAArch32LittleEndian,
-  kArchAArch64LittleEndian,
-  kArchAArch64LittleEndian_SLEIGH,
+  kAArch32LittleEndian,
+  kAArch64LittleEndian,
+  kAArch64LittleEndian_SLEIGH,
 
-  kArchSparc32,
-  kArchSparc64,
-  kArchSparc32_SLEIGH,
+  kSparc32,
+  kSparc64,
+  kSparc32_SLEIGH,
 
-  kArchThumb2LittleEndian,
+  kThumb2LittleEndian,
 
-  kArchPPC,
+  kPPC,
 };
 
 ArchName GetArchName(const llvm::Triple &triple);

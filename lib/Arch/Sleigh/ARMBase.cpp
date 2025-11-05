@@ -20,8 +20,8 @@ llvm::CallingConv::ID AArch32ArchBase::DefaultCallingConv(void) const {
 llvm::Triple AArch32ArchBase::Triple(void) const {
   auto triple = BasicTriple();
   switch (arch_name) {
-    case kArchAArch32LittleEndian: triple.setArch(llvm::Triple::arm); break;
-    case kArchThumb2LittleEndian: triple.setArch(llvm::Triple::thumb); break;
+    case ArchName::kArchAArch32LittleEndian: triple.setArch(llvm::Triple::arm); break;
+    case ArchName::kArchThumb2LittleEndian: triple.setArch(llvm::Triple::thumb); break;
     default:
       LOG(FATAL) << "Cannot get triple for non-aarch32 architecture "
                  << GetArchName(arch_name);
@@ -34,14 +34,14 @@ llvm::Triple AArch32ArchBase::Triple(void) const {
 llvm::DataLayout AArch32ArchBase::DataLayout(void) const {
   std::string dl;
   switch (os_name) {
-    case kOSInvalid:
+    case OSName::kOSInvalid:
       LOG(FATAL) << "Cannot convert module for an unrecognized OS.";
       break;
 
-    case kOSLinux:
-    case kOSSolaris:
-    case kOSmacOS:
-    case kOSWindows:
+    case OSName::kOSLinux:
+    case OSName::kOSSolaris:
+    case OSName::kOSmacOS:
+    case OSName::kOSWindows:
       dl = "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64";
       break;
   }
