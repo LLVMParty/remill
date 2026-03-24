@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -57,6 +58,9 @@ DEFINE_string(arch, REMILL_ARCH,
               "Architecture of the code being translated. "
               "Valid architectures: x86, amd64 (with or without "
               "`_avx` or `_avx512` appended), aarch64, aarch32");
+DEFINE_string(sem_dir, "",
+              "Directory containing architecture semantics bitcode to prefer "
+              "when lifting tests.");
 
 namespace {
 
@@ -127,7 +131,14 @@ extern "C" int main(int argc, char *argv[]) {
   auto os_name = remill::GetOSName(REMILL_OS);
   auto arch_name = remill::GetArchName(FLAGS_arch);
   auto arch = remill::Arch::Build(&context, os_name, arch_name);
-  auto module = remill::LoadArchSemantics(arch.get());
+
+  std::unique_ptr<llvm::Module> module;
+  if (!FLAGS_sem_dir.empty()) {
+    module = remill::LoadArchSemantics(
+        arch.get(), std::vector<std::filesystem::path>{FLAGS_sem_dir});
+  } else {
+    module = remill::LoadArchSemantics(arch.get());
+  }
 
   remill::IntrinsicTable intrinsics(module.get());
   remill::TraceLifter trace_lifter(arch.get(), manager);
