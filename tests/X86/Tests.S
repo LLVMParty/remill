@@ -58,7 +58,7 @@
     \
 SYMBOL(FUNC_NAME(instr_name, num_args)): ; \
     \
-    .section "__x86_test_table", "a" ; \
+    .section "__x86_test_table", "aw" ; \
     .balign 128 ; \
     1: \
     .quad 3f ; \
@@ -84,7 +84,7 @@ SYMBOL(FUNC_NAME(instr_name, num_args)): ; \
 # define TEST_END \
     6: \
     .cfi_endproc ; \
-    .section "__x86_test_table", "a" ; \
+    .section "__x86_test_table", "aw" ; \
     .quad 0 ; \
     .text ; \
     ud2 ;
@@ -94,7 +94,7 @@ SYMBOL(FUNC_NAME(instr_name, num_args)): ; \
     6: \
     jmp SYMBOL(__x86_save_state_after) ; \
     .cfi_endproc ; \
-    .section "__x86_test_table", "a" ; \
+    .section "__x86_test_table", "aw" ; \
     .quad 0 ; \
     .text ; \
     ud2 ;
@@ -109,7 +109,7 @@ SYMBOL(FUNC_NAME(instr_name, num_args)): ; \
 #define OF | (1 << 11)
 
 #define TEST_IGNORE_FLAGS(...) \
-    .section "__x86_test_table", "a" ; \
+    .section "__x86_test_table", "aw" ; \
     .quad 0 __VA_ARGS__ ; \
     .text ;
 
@@ -317,7 +317,7 @@ SYMBOL(__x86_save_state_after):
 
     /* Create a symbol that represents the start of the test information
      * table. */
-    .section "__x86_test_table", "a"
+    .section "__x86_test_table", "aw"
     .balign 128
     .globl SYMBOL(__x86_test_table_begin)
 SYMBOL(__x86_test_table_begin):
@@ -567,6 +567,6 @@ SYMBOL(__x86_test_table_begin):
 #endif
 
     /* Create a symbol that represents the end of the test information table. */
-    .section "__x86_test_table", "a"
+    .section "__x86_test_table", "aw"
     .globl SYMBOL(__x86_test_table_end)
 SYMBOL(__x86_test_table_end):
