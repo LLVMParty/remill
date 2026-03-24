@@ -257,11 +257,18 @@ bool TraceLifter::Impl::Lift(
   auto get_trace_decl = [this](uint64_t trace_addr) -> llvm::Function * {
     if (auto trace = GetLiftedTraceDeclaration(trace_addr)) {
       return trace;
-    } else if (trace_work_list.count(trace_addr)) {
-      return arch->DeclareLiftedFunction(manager.TraceName(trace_addr), module);
-    } else {
-      return nullptr;
     }
+
+    auto trace_name = manager.TraceName(trace_addr);
+    if (auto trace = module->getFunction(trace_name)) {
+      return trace;
+    }
+
+    if (trace_work_list.count(trace_addr)) {
+      return arch->DeclareLiftedFunction(trace_name, module);
+    }
+
+    return nullptr;
   };
 
   trace_work_list.insert(addr);
