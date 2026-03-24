@@ -35,6 +35,8 @@ DEF_SEM(DoXGETBV, PC next_pc) {
       IF_AVX512(xcr0.opmask = 1;)
       IF_AVX512(xcr0.zmm_hi256 = 1;)
       IF_AVX512(xcr0.hi16_zmm = 1;)
+      WriteZExt(IF_64BIT_ELSE(REG_RAX, REG_EAX), xcr0.eax);
+      WriteZExt(IF_64BIT_ELSE(REG_RDX, REG_EDX), xcr0.edx);
       break;
     }
 

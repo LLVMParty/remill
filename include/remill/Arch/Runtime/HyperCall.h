@@ -32,6 +32,8 @@ class SyncHyperCall {
     kX86ReadTSCP,
     kX86LoadGlobalDescriptorTable,
     kX86LoadInterruptDescriptorTable,
+    kX86LoadAccessRights,
+    kX86VerifySegmentReadable,
     kX86ReadModelSpecificRegister,
     kX86WriteModelSpecificRegister,
     kX86WriteBackInvalidate,

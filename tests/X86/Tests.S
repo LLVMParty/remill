@@ -400,17 +400,26 @@ SYMBOL(__x86_test_table_begin):
 #include "tests/X86/BITBYTE/BSWAP.S"
 #include "tests/X86/BITBYTE/BT.S"
 #include "tests/X86/BITBYTE/BTC.S"
+#include "tests/X86/BITBYTE/BEXTR.S"
 #include "tests/X86/BITBYTE/BTR.S"
 #include "tests/X86/BITBYTE/BTS.S"
+#include "tests/X86/BITBYTE/BZHI.S"
+#include "tests/X86/BITBYTE/CRC32.S"
 #include "tests/X86/BITBYTE/LZCNT.S"
+#include "tests/X86/BITBYTE/PDEP.S"
+#include "tests/X86/BITBYTE/PEXT.S"
+#include "tests/X86/BITBYTE/POPCNT.S"
 #include "tests/X86/BITBYTE/SETcc.S"
+#include "tests/X86/BITBYTE/SETE.S"
 #include "tests/X86/BITBYTE/TZCNT.S"
 
 #include "tests/X86/CMOV/CMOVB.S"
 #include "tests/X86/CMOV/CMOVBE.S"
+#include "tests/X86/CMOV/CMOVE.S"
 #include "tests/X86/CMOV/CMOVL.S"
 #include "tests/X86/CMOV/CMOVLE.S"
 #include "tests/X86/CMOV/CMOVNB.S"
+#include "tests/X86/CMOV/CMOVNE.S"
 #include "tests/X86/CMOV/CMOVNBE.S"
 #include "tests/X86/CMOV/CMOVNL.S"
 #include "tests/X86/CMOV/CMOVNLE.S"
@@ -454,15 +463,19 @@ SYMBOL(__x86_test_table_begin):
 #include "tests/X86/DECIMAL/DAA.S"
 
 #include "tests/X86/LOGICAL/AND.S"
+#include "tests/X86/LOGICAL/ANDN.S"
 #include "tests/X86/LOGICAL/NOT.S"
 #include "tests/X86/LOGICAL/OR.S"
 #include "tests/X86/LOGICAL/TEST.S"
 #include "tests/X86/LOGICAL/XOR.S"
 
+#include "tests/X86/INTERRUPT/INT3.S"
+
 #include "tests/X86/MISC/CPUID.S"
 #include "tests/X86/MISC/ENTER.S"
 #include "tests/X86/MISC/LEA.S"
 #include "tests/X86/MISC/LEAVE.S"
+#include "tests/X86/MISC/NOP.S"
 #include "tests/X86/MISC/XLAT.S"
 
 #include "tests/X86/MMX/MISC.S"
@@ -502,6 +515,7 @@ SYMBOL(__x86_test_table_begin):
 #include "tests/X86/SHIFT/SAR.S"
 #include "tests/X86/SHIFT/SHL.S"
 #include "tests/X86/SHIFT/SHLD.S"
+#include "tests/X86/SHIFT/SHLX.S"
 #include "tests/X86/SHIFT/SHR.S"
 #include "tests/X86/SHIFT/SHRD.S"
 
@@ -563,6 +577,18 @@ SYMBOL(__x86_test_table_begin):
 
 #include "tests/X86/FMA/VFMADDSD.S"
 #include "tests/X86/FMA/VFMSUBSD.S"
+
+#include "tests/X86/BRANCH/CALL.S"
+#include "tests/X86/BRANCH/JAE.S"
+#include "tests/X86/BRANCH/JE.S"
+#include "tests/X86/BRANCH/JMP.S"
+#include "tests/X86/BRANCH/JNE.S"
+#include "tests/X86/BRANCH/RET.S"
+
+#include "tests/X86/SYSTEM/LAR.S"
+#include "tests/X86/SYSTEM/RDTSC.S"
+#include "tests/X86/SYSTEM/VERR.S"
+#include "tests/X86/SYSTEM/XGETBV.S"
 
 #endif
 

@@ -441,20 +441,30 @@ Memory *__remill_write_io_port_32(Memory *, addr_t, uint32_t) {
   abort();
 }
 
-Memory *__remill_function_call(State &, addr_t, Memory *) {
-  abort();
+Memory *__remill_function_call(State &, addr_t, Memory *memory) {
+  return memory;
 }
 
-Memory *__remill_function_return(State &, addr_t, Memory *) {
-  abort();
+Memory *__remill_function_return(State &, addr_t, Memory *memory) {
+  return memory;
 }
 
-Memory *__remill_jump(State &, addr_t, Memory *) {
-  abort();
+Memory *__remill_jump(State &, addr_t, Memory *memory) {
+  return memory;
 }
 
-Memory *__remill_async_hyper_call(State &, addr_t, Memory *) {
-  abort();
+Memory *__remill_async_hyper_call(State &state, addr_t, Memory *memory) {
+  switch (state.hyper_call) {
+    case AsyncHyperCall::kX86Int1:
+    case AsyncHyperCall::kX86Int3:
+    case AsyncHyperCall::kX86IntO:
+    case AsyncHyperCall::kX86IntN:
+    case AsyncHyperCall::kX86Bound:
+      return memory;
+
+    default:
+      abort();
+  }
 }
 
 uint8_t __remill_undefined_8(void) {
@@ -904,6 +914,26 @@ static void RunWithFlags(const test::TestInfo *info, Flags flags,
   ImportX87State(native_state);
   ResetFlags();
 
+#if defined(__x86_64__) || defined(__i386__)
+  {
+    uint32_t eax = 1;
+    uint32_t ebx = 0;
+    uint32_t ecx = 0;
+    uint32_t edx = 0;
+    asm volatile("cpuid"
+                 : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                 : "a"(eax), "b"(ebx), "c"(ecx), "d"(edx));
+    if (ecx & (1U << 26U)) {
+      uint32_t xcr0_lo = 0;
+      uint32_t xcr0_hi = 0;
+      asm volatile("xgetbv" : "=a"(xcr0_lo), "=d"(xcr0_hi) : "c"(0));
+      native_state->xcr0.eax = xcr0_lo;
+      native_state->xcr0.edx = xcr0_hi;
+      lifted_state->xcr0 = native_state->xcr0;
+    }
+  }
+#endif
+
   // Set up the RIP correctly.
   lifted_state->gpr.rip.aword = static_cast<addr_t>(info->test_begin);
   native_state->gpr.rip.aword = static_cast<addr_t>(info->test_end);
@@ -1321,7 +1351,11 @@ static void RecoverFromError(int sig_num, siginfo_t *, void *context_) {
   siglongjmp(gJmpBuf, 0);
 }
 
-static void ConsumeTrap(int, siginfo_t *, void *) {}
+static void ConsumeTrap(int, siginfo_t *, void *) {
+  auto native_state = reinterpret_cast<State *>(&gNativeState);
+  native_state->hyper_call = AsyncHyperCall::kX86Int3;
+  native_state->hyper_call_vector = 3;
+}
 
 static void HandleUnsupportedInstruction(int, siginfo_t *, void *) {
   siglongjmp(gUnsupportedInstrBuf, 0);

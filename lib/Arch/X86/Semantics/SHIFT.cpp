@@ -148,9 +148,8 @@ DEF_SEM(SHL, D dst, S1 src1, S2 src2) {
     new_val = UShl(res, 1);
 
   } else {
-    new_of = BUndefined();  // Undefined, probably 1.
-    // TODO(lukas): Double check.
-    new_cf = 0;  // Undefined, probably 0.
+    new_of = BUndefined();
+    new_cf = BUndefined();
     new_val = 0;
   }
 
@@ -161,6 +160,19 @@ DEF_SEM(SHL, D dst, S1 src1, S2 src2) {
   Write(FLAG_ZF, ZeroFlag(new_val));
   Write(FLAG_SF, SignFlag(new_val));
   Write(FLAG_OF, new_of);
+  return memory;
+}
+
+template <typename D, typename S1, typename S2>
+DEF_SEM(SHLX, D dst, S1 src1, S2 src2) {
+  auto val = Read(src1);
+  auto shift = ZExtTo<S1>(TruncTo<uint8_t>(Read(src2)));
+  auto long_mask = Literal<S1>(0x3F);
+  auto short_mask = Literal<S1>(0x1F);
+  auto op_size = BitSizeOf(src1);
+  auto shift_mask = Select(UCmpEq(op_size, 64), long_mask, short_mask);
+  auto masked_shift = UAnd(shift, shift_mask);
+  WriteZExt(dst, UShl(val, masked_shift));
   return memory;
 }
 }  // namespace
@@ -216,6 +228,15 @@ DEF_ISEL_RnW_Rn_Rn(SHL_GPRv_CL_D3r4, SHL);
 DEF_ISEL_MnW_Mn_Rn(SHL_MEMv_CL_D3r6, SHL);
 DEF_ISEL_RnW_Rn_Rn(SHL_GPRv_CL_D3r6, SHL);
 
+DEF_ISEL(SHLX_GPR32d_MEMd_GPR32d) = SHLX<R32W, M32, R32>;
+DEF_ISEL(SHLX_GPR32d_GPR32d_GPR32d) = SHLX<R32W, R32, R32>;
+DEF_ISEL(SHLX_VGPR32d_MEMd_VGPR32d) = SHLX<R32W, M32, R32>;
+DEF_ISEL(SHLX_VGPR32d_VGPR32d_VGPR32d) = SHLX<R32W, R32, R32>;
+IF_64BIT(DEF_ISEL(SHLX_GPR64q_MEMq_GPR64q) = SHLX<R64W, M64, R64>;)
+IF_64BIT(DEF_ISEL(SHLX_GPR64q_GPR64q_GPR64q) = SHLX<R64W, R64, R64>;)
+IF_64BIT(DEF_ISEL(SHLX_VGPR64q_MEMq_VGPR64q) = SHLX<R64W, M64, R64>;)
+IF_64BIT(DEF_ISEL(SHLX_VGPR64q_VGPR64q_VGPR64q) = SHLX<R64W, R64, R64>;)
+
 namespace {
 
 template <typename T>
@@ -262,9 +283,11 @@ DEF_SEM(SHRD, D dst, S1 src1, S2 src2, S3 src3) {
   Write(FLAG_AF, BUndefined());
   Write(FLAG_ZF, ZeroFlag(res));
   Write(FLAG_SF, SignFlag(res));
-  Write(FLAG_OF, BXor(SignFlag(val1), FLAG_SF));
-
-  // OF undefined for `1 == temp_count`.
+  if (UCmpEq(masked_shift, Literal<S1>(1))) {
+    Write(FLAG_OF, BXor(SignFlag(val1), FLAG_SF));
+  } else {
+    Write(FLAG_OF, BUndefined());
+  }
   return memory;
 }
 
@@ -322,9 +345,11 @@ DEF_SEM(SHLD, D dst, S1 src1, S2 src2, S3 src3) {
   Write(FLAG_AF, BUndefined());
   Write(FLAG_ZF, ZeroFlag(res));
   Write(FLAG_SF, SignFlag(res));
-  Write(FLAG_OF, BXor(SignFlag(val1), FLAG_SF));
-
-  // OF undefined for `1 == temp_count`.
+  if (UCmpEq(masked_shift, Literal<S1>(1))) {
+    Write(FLAG_OF, BXor(SignFlag(val1), FLAG_SF));
+  } else {
+    Write(FLAG_OF, BUndefined());
+  }
   return memory;
 }
 

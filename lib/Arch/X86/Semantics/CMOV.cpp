@@ -53,6 +53,11 @@ DEF_SEM(CMOVNZ, D dst, S1 src1) {
 }
 
 template <typename D, typename S1>
+DEF_SEM(CMOVNE, D dst, S1 src1) {
+  return CMOVNZ<D, S1>(dst, src1);
+}
+
+template <typename D, typename S1>
 DEF_SEM(CMOVNB, D dst, S1 src1) {
   WriteZExt(dst, Select(__remill_compare_uge(BNot(FLAG_CF)), Read(src1),
                         TruncTo<S1>(Read(dst))));
@@ -92,6 +97,11 @@ DEF_SEM(CMOVZ, D dst, S1 src1) {
   WriteZExt(dst, Select(__remill_compare_eq(FLAG_ZF), Read(src1),
                         TruncTo<S1>(Read(dst))));
   return memory;
+}
+
+template <typename D, typename S1>
+DEF_SEM(CMOVE, D dst, S1 src1) {
+  return CMOVZ<D, S1>(dst, src1);
 }
 
 template <typename D, typename S1>
@@ -151,6 +161,10 @@ DEF_ISEL_RnW_Mn(CMOVO_GPRv_MEMv, CMOVO);
 DEF_ISEL_RnW_Rn(CMOVO_GPRv_GPRv, CMOVO);
 DEF_ISEL_RnW_Mn(CMOVZ_GPRv_MEMv, CMOVZ);
 DEF_ISEL_RnW_Rn(CMOVZ_GPRv_GPRv, CMOVZ);
+DEF_ISEL_RnW_Mn(CMOVE_GPRv_MEMv, CMOVZ);
+DEF_ISEL_RnW_Rn(CMOVE_GPRv_GPRv, CMOVZ);
+DEF_ISEL_RnW_Mn(CMOVNE_GPRv_MEMv, CMOVNZ);
+DEF_ISEL_RnW_Rn(CMOVNE_GPRv_GPRv, CMOVNZ);
 DEF_ISEL_RnW_Mn(CMOVP_GPRv_MEMv, CMOVP);
 DEF_ISEL_RnW_Rn(CMOVP_GPRv_GPRv, CMOVP);
 DEF_ISEL_RnW_Mn(CMOVS_GPRv_MEMv, CMOVS);

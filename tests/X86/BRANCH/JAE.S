@@ -1,0 +1,35 @@
+/*
+ * Copyright (c) 2017 Trail of Bits, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+TEST_BEGIN(JAEr32, 2)
+TEST_INPUTS(
+    0, 0,
+    1, 0,
+    0, 1,
+    0x12345678, 0x12345678,
+    0xFFFFFFFF, 0x7FFFFFFF)
+
+    mov eax, ARG1_32
+    cmp eax, ARG2_32
+    mov RET_32, 0
+    jae jae_taken1
+    mov RET_32, 1
+    jmp jae_done1
+jae_taken1:
+    mov RET_32, 2
+jae_done1:
+    nop
+TEST_END

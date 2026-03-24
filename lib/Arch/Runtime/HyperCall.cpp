@@ -78,7 +78,7 @@ Memory *__remill_sync_hyper_call(State &state, Memory *mem,
 
     case SyncHyperCall::kX86ReadTSC:
       asm volatile("rdtsc"
-                   : "=a"(state.gpr.rax.dword), "=d"(state.gpr.rdx.dword));
+                   : "=a"(state.gpr.rax.aword), "=d"(state.gpr.rdx.aword));
       break;
 
     case SyncHyperCall::kX86ReadTSCP:
@@ -110,6 +110,38 @@ Memory *__remill_sync_hyper_call(State &state, Memory *mem,
       } __attribute__((packed));
       const auto *idtr = reinterpret_cast<const IdtrRecord *>(&read);
       asm volatile("lidt %0" : : "m"(idtr));
+      break;
+    }
+
+    case SyncHyperCall::kX86LoadAccessRights: {
+      const auto selector = static_cast<uint16_t>(state.addr_to_load);
+      uint8_t zf = 0;
+#if REMILL_HYPERCALL_X86
+      uint32_t result = 0;
+#else
+      uint64_t result = 0;
+#endif
+      asm volatile("lar %[src], %[dst] \n\t"
+                   "setz %[zf]"
+                   : [dst] "=r"(result), [zf] "=qm"(zf)
+                   : [src] "rm"(selector)
+                   : "cc");
+      state.addr_to_store = result;
+      state.rflag.zf = zf;
+      state.aflag.zf = zf;
+      break;
+    }
+
+    case SyncHyperCall::kX86VerifySegmentReadable: {
+      const auto selector = static_cast<uint16_t>(state.addr_to_load);
+      uint8_t zf = 0;
+      asm volatile("verr %[src] \n\t"
+                   "setz %[zf]"
+                   : [zf] "=qm"(zf)
+                   : [src] "rm"(selector)
+                   : "cc");
+      state.rflag.zf = zf;
+      state.aflag.zf = zf;
       break;
     }
 

@@ -123,6 +123,8 @@ DEF_ISEL(SETP_MEMb) = SETP<M8W>;
 DEF_ISEL(SETP_GPR8) = SETP<R8W>;
 DEF_ISEL(SETZ_MEMb) = SETZ<M8W>;
 DEF_ISEL(SETZ_GPR8) = SETZ<R8W>;
+DEF_ISEL(SETE_MEMb) = SETZ<M8W>;
+DEF_ISEL(SETE_GPR8) = SETZ<R8W>;
 DEF_ISEL(SETS_MEMb) = SETS<M8W>;
 DEF_ISEL(SETS_GPR8) = SETS<R8W>;
 DEF_ISEL(SETNO_MEMb) = SETNO<M8W>;
@@ -323,6 +325,159 @@ DEF_SEM(LZCNT, D dst, S src) {
   return memory;
 }
 
+template <typename T>
+ALWAYS_INLINE static T LowBitMask(T count, T bit_size) {
+  if (UCmpEq(count, 0)) {
+    return Literal<T>(0);
+  }
+  if (!UCmpLt(count, bit_size)) {
+    return Maximize(Literal<T>(0));
+  }
+  return USub(UShl(Literal<T>(1), count), Literal<T>(1));
+}
+
+template <typename T>
+ALWAYS_INLINE static T PopulationCount(T val) {
+  auto count = Literal<T>(0);
+  for (unsigned i = 0; i < (sizeof(T) * 8U); ++i) {
+    count = UAdd(count, UAnd(UShr(val, Literal<T>(i)), Literal<T>(1)));
+  }
+  return count;
+}
+
+ALWAYS_INLINE static uint32_t CRC32Byte(uint32_t crc, uint8_t byte) {
+  crc = UXor(crc, ZExtTo<uint32_t>(byte));
+  for (unsigned i = 0; i < 8U; ++i) {
+    auto low_bit_set = UCmpNeq(UAnd(crc, Literal<uint32_t>(1)), 0U);
+    crc = UShr(crc, 1U);
+    crc = Select(low_bit_set, UXor(crc, Literal<uint32_t>(0x82F63B78U)), crc);
+  }
+  return crc;
+}
+
+template <typename T>
+ALWAYS_INLINE static uint32_t CRC32Value(uint32_t crc, T val) {
+  for (unsigned i = 0; i < sizeof(T); ++i) {
+    crc = CRC32Byte(crc,
+                    TruncTo<uint8_t>(UShr(val, Literal<T>(i * 8U))));
+  }
+  return crc;
+}
+
+template <typename D, typename S1, typename S2>
+DEF_SEM(BEXTR, D dst, S1 src1, S2 src2) {
+  auto val = Read(src1);
+  auto control = Read(src2);
+  auto bit_size = BitSizeOf(src1);
+  auto start = ZExtTo<S1>(TruncTo<uint8_t>(control));
+  auto length =
+      ZExtTo<S1>(TruncTo<uint8_t>(UShr(control, Literal<decltype(control)>(8))));
+  auto res = Literal<S1>(0);
+
+  if (UCmpLt(start, bit_size) && UCmpNeq(length, 0)) {
+    auto avail = USub(bit_size, start);
+    auto use_len = Select(UCmpLt(avail, length), avail, length);
+    auto mask = LowBitMask(use_len, bit_size);
+    res = UAnd(UShr(val, start), mask);
+  }
+
+  WriteZExt(dst, res);
+  Write(FLAG_CF, false);
+  Write(FLAG_OF, false);
+  Write(FLAG_ZF, ZeroFlag(res));
+  UndefFlag(sf);
+  UndefFlag(af);
+  UndefFlag(pf);
+  return memory;
+}
+
+template <typename D, typename S1, typename S2>
+DEF_SEM(BZHI, D dst, S1 src1, S2 src2) {
+  auto val = Read(src1);
+  auto count = ZExtTo<S1>(TruncTo<uint8_t>(Read(src2)));
+  auto bit_size = BitSizeOf(src1);
+  auto out_of_range = !UCmpLt(count, bit_size);
+  auto mask = LowBitMask(count, bit_size);
+  auto res = Select(out_of_range, val, UAnd(val, mask));
+
+  WriteZExt(dst, res);
+  Write(FLAG_CF, out_of_range);
+  Write(FLAG_OF, false);
+  Write(FLAG_ZF, ZeroFlag(res));
+  Write(FLAG_SF, SignFlag(res));
+  UndefFlag(af);
+  UndefFlag(pf);
+  return memory;
+}
+
+template <typename D, typename S>
+DEF_SEM(POPCNT, D dst, S src) {
+  auto val = Read(src);
+  auto count = PopulationCount(val);
+  WriteZExt(dst, count);
+  Write(FLAG_CF, false);
+  Write(FLAG_PF, false);
+  Write(FLAG_AF, false);
+  Write(FLAG_ZF, ZeroFlag(val));
+  Write(FLAG_SF, false);
+  Write(FLAG_OF, false);
+  return memory;
+}
+
+template <typename D, typename S1, typename S2>
+DEF_SEM(PDEP, D dst, S1 src1, S2 src2) {
+  auto src = Read(src1);
+  auto mask = Read(src2);
+  auto res = Literal<S1>(0);
+  unsigned src_index = 0;
+
+  for (unsigned i = 0; i < (sizeof(decltype(src)) * 8U); ++i) {
+    auto mask_bit = UShl(Literal<S1>(1), Literal<decltype(src)>(i));
+    if (UCmpNeq(UAnd(mask, mask_bit), 0)) {
+      auto src_bit =
+          UAnd(UShr(src, Literal<decltype(src)>(src_index)), Literal<S1>(1));
+      if (UCmpNeq(src_bit, 0)) {
+        res = UOr(res, mask_bit);
+      }
+      ++src_index;
+    }
+  }
+
+  WriteZExt(dst, res);
+  return memory;
+}
+
+template <typename D, typename S1, typename S2>
+DEF_SEM(PEXT, D dst, S1 src1, S2 src2) {
+  auto src = Read(src1);
+  auto mask = Read(src2);
+  auto res = Literal<S1>(0);
+  unsigned dst_index = 0;
+
+  for (unsigned i = 0; i < (sizeof(decltype(src)) * 8U); ++i) {
+    auto mask_bit = UShl(Literal<S1>(1), Literal<decltype(src)>(i));
+    if (UCmpNeq(UAnd(mask, mask_bit), 0)) {
+      auto src_bit = UAnd(UShr(src, Literal<decltype(src)>(i)), Literal<S1>(1));
+      if (UCmpNeq(src_bit, 0)) {
+        res = UOr(res, UShl(Literal<S1>(1), Literal<decltype(src)>(dst_index)));
+      }
+      ++dst_index;
+    }
+  }
+
+  WriteZExt(dst, res);
+  return memory;
+}
+
+template <typename D, typename S1, typename S2>
+DEF_SEM(CRC32, D dst, S1 src1, S2 src2) {
+  auto seed = TruncTo<uint32_t>(Read(src1));
+  auto val = Read(src2);
+  auto crc = CRC32Value(seed, val);
+  WriteZExt(dst, crc);
+  return memory;
+}
+
 }  // namespace
 
 DEF_ISEL(BSWAP_GPRv_16) = BSWAP_16;
@@ -334,6 +489,56 @@ DEF_ISEL_RnW_Rn(TZCNT_GPRv_GPRv, TZCNT);
 
 DEF_ISEL_RnW_Mn(LZCNT_GPRv_MEMv, LZCNT);
 DEF_ISEL_RnW_Rn(LZCNT_GPRv_GPRv, LZCNT);
+
+DEF_ISEL(BEXTR_GPR32d_MEMd_GPR32d) = BEXTR<R32W, M32, R32>;
+DEF_ISEL(BEXTR_GPR32d_GPR32d_GPR32d) = BEXTR<R32W, R32, R32>;
+DEF_ISEL(BEXTR_VGPR32d_MEMd_VGPR32d) = BEXTR<R32W, M32, R32>;
+DEF_ISEL(BEXTR_VGPR32d_VGPR32d_VGPR32d) = BEXTR<R32W, R32, R32>;
+IF_64BIT(DEF_ISEL(BEXTR_GPR64q_MEMq_GPR64q) = BEXTR<R64W, M64, R64>;)
+IF_64BIT(DEF_ISEL(BEXTR_GPR64q_GPR64q_GPR64q) = BEXTR<R64W, R64, R64>;)
+IF_64BIT(DEF_ISEL(BEXTR_VGPR64q_MEMq_VGPR64q) = BEXTR<R64W, M64, R64>;)
+IF_64BIT(DEF_ISEL(BEXTR_VGPR64q_VGPR64q_VGPR64q) = BEXTR<R64W, R64, R64>;)
+
+DEF_ISEL(BZHI_GPR32d_MEMd_GPR32d) = BZHI<R32W, M32, R32>;
+DEF_ISEL(BZHI_GPR32d_GPR32d_GPR32d) = BZHI<R32W, R32, R32>;
+DEF_ISEL(BZHI_VGPR32d_MEMd_VGPR32d) = BZHI<R32W, M32, R32>;
+DEF_ISEL(BZHI_VGPR32d_VGPR32d_VGPR32d) = BZHI<R32W, R32, R32>;
+IF_64BIT(DEF_ISEL(BZHI_GPR64q_MEMq_GPR64q) = BZHI<R64W, M64, R64>;)
+IF_64BIT(DEF_ISEL(BZHI_GPR64q_GPR64q_GPR64q) = BZHI<R64W, R64, R64>;)
+IF_64BIT(DEF_ISEL(BZHI_VGPR64q_MEMq_VGPR64q) = BZHI<R64W, M64, R64>;)
+IF_64BIT(DEF_ISEL(BZHI_VGPR64q_VGPR64q_VGPR64q) = BZHI<R64W, R64, R64>;)
+
+DEF_ISEL_RnW_Mn(POPCNT_GPRv_MEMv, POPCNT);
+DEF_ISEL_RnW_Rn(POPCNT_GPRv_GPRv, POPCNT);
+
+DEF_ISEL(PDEP_GPR32d_GPR32d_MEMd) = PDEP<R32W, R32, M32>;
+DEF_ISEL(PDEP_GPR32d_GPR32d_GPR32d) = PDEP<R32W, R32, R32>;
+DEF_ISEL(PDEP_VGPR32d_VGPR32d_MEMd) = PDEP<R32W, R32, M32>;
+DEF_ISEL(PDEP_VGPR32d_VGPR32d_VGPR32d) = PDEP<R32W, R32, R32>;
+IF_64BIT(DEF_ISEL(PDEP_GPR64q_GPR64q_MEMq) = PDEP<R64W, R64, M64>;)
+IF_64BIT(DEF_ISEL(PDEP_GPR64q_GPR64q_GPR64q) = PDEP<R64W, R64, R64>;)
+IF_64BIT(DEF_ISEL(PDEP_VGPR64q_VGPR64q_MEMq) = PDEP<R64W, R64, M64>;)
+IF_64BIT(DEF_ISEL(PDEP_VGPR64q_VGPR64q_VGPR64q) = PDEP<R64W, R64, R64>;)
+
+DEF_ISEL(PEXT_GPR32d_GPR32d_MEMd) = PEXT<R32W, R32, M32>;
+DEF_ISEL(PEXT_GPR32d_GPR32d_GPR32d) = PEXT<R32W, R32, R32>;
+DEF_ISEL(PEXT_VGPR32d_VGPR32d_MEMd) = PEXT<R32W, R32, M32>;
+DEF_ISEL(PEXT_VGPR32d_VGPR32d_VGPR32d) = PEXT<R32W, R32, R32>;
+IF_64BIT(DEF_ISEL(PEXT_GPR64q_GPR64q_MEMq) = PEXT<R64W, R64, M64>;)
+IF_64BIT(DEF_ISEL(PEXT_GPR64q_GPR64q_GPR64q) = PEXT<R64W, R64, R64>;)
+IF_64BIT(DEF_ISEL(PEXT_VGPR64q_VGPR64q_MEMq) = PEXT<R64W, R64, M64>;)
+IF_64BIT(DEF_ISEL(PEXT_VGPR64q_VGPR64q_VGPR64q) = PEXT<R64W, R64, R64>;)
+
+DEF_ISEL(CRC32_GPRyy_MEMb_32) = CRC32<R32W, R32, M8>;
+IF_64BIT(DEF_ISEL(CRC32_GPRyy_MEMb_64) = CRC32<R64W, R64, M8>;)
+DEF_ISEL(CRC32_GPRyy_GPR8b_32) = CRC32<R32W, R32, R8>;
+IF_64BIT(DEF_ISEL(CRC32_GPRyy_GPR8b_64) = CRC32<R64W, R64, R8>;)
+DEF_ISEL(CRC32_GPRyy_MEMv_16) = CRC32<R32W, R32, M16>;
+DEF_ISEL(CRC32_GPRyy_MEMv_32) = CRC32<R32W, R32, M32>;
+IF_64BIT(DEF_ISEL(CRC32_GPRyy_MEMv_64) = CRC32<R64W, R64, M64>;)
+DEF_ISEL(CRC32_GPRyy_GPRv_16) = CRC32<R32W, R32, R16>;
+DEF_ISEL(CRC32_GPRyy_GPRv_32) = CRC32<R32W, R32, R32>;
+IF_64BIT(DEF_ISEL(CRC32_GPRyy_GPRv_64) = CRC32<R64W, R64, R64>;)
 
 namespace {
 template <typename D, typename S>

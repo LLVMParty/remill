@@ -39,6 +39,18 @@ DEF_SEM(AND, D dst, S1 src1, S2 src2) {
 }
 
 template <typename D, typename S1, typename S2>
+DEF_SEM(ANDN, D dst, S1 src1, S2 src2) {
+  auto lhs = Read(src1);
+  auto rhs = Read(src2);
+  auto res = UAnd(UNot(lhs), rhs);
+  WriteZExt(dst, res);
+  SetFlagsLogical(state, lhs, rhs, res);
+  UndefFlag(af);
+  UndefFlag(pf);
+  return memory;
+}
+
+template <typename D, typename S1, typename S2>
 DEF_SEM(OR, D dst, S1 src1, S2 src2) {
   auto lhs = Read(src1);
   auto rhs = Read(src2);
@@ -96,6 +108,15 @@ DEF_ISEL_RnW_Rn_Rn(AND_GPRv_GPRv_23, AND);
 DEF_ISEL_RnW_Rn_Mn(AND_GPRv_MEMv, AND);
 DEF_ISEL(AND_AL_IMMb) = AND<R8W, R8, I8>;
 DEF_ISEL_RnW_Rn_In(AND_OrAX_IMMz, AND);
+
+DEF_ISEL(ANDN_GPR32d_GPR32d_MEMd) = ANDN<R32W, R32, M32>;
+DEF_ISEL(ANDN_GPR32d_GPR32d_GPR32d) = ANDN<R32W, R32, R32>;
+DEF_ISEL(ANDN_VGPR32d_VGPR32d_MEMd) = ANDN<R32W, R32, M32>;
+DEF_ISEL(ANDN_VGPR32d_VGPR32d_VGPR32d) = ANDN<R32W, R32, R32>;
+IF_64BIT(DEF_ISEL(ANDN_GPR64q_GPR64q_MEMq) = ANDN<R64W, R64, M64>;)
+IF_64BIT(DEF_ISEL(ANDN_GPR64q_GPR64q_GPR64q) = ANDN<R64W, R64, R64>;)
+IF_64BIT(DEF_ISEL(ANDN_VGPR64q_VGPR64q_MEMq) = ANDN<R64W, R64, M64>;)
+IF_64BIT(DEF_ISEL(ANDN_VGPR64q_VGPR64q_VGPR64q) = ANDN<R64W, R64, R64>;)
 
 DEF_ISEL(OR_MEMb_IMMb_80r1) = OR<M8W, M8, I8>;
 DEF_ISEL(OR_GPR8_IMMb_80r1) = OR<R8W, R8, I8>;

@@ -24,6 +24,24 @@ DEF_SEM(DoRDTSCP) {
   return __remill_sync_hyper_call(state, memory, SyncHyperCall::kX86ReadTSCP);
 }
 
+template <typename D, typename S>
+DEF_SEM(LAR, D dst, S src) {
+  auto old_dst = Read(dst);
+  state.addr_to_load = ZExtTo<uint64_t>(TruncTo<uint16_t>(Read(src)));
+  memory =
+      __remill_sync_hyper_call(state, memory, SyncHyperCall::kX86LoadAccessRights);
+  auto new_dst = static_cast<decltype(old_dst)>(state.addr_to_store);
+  Write(dst, Select(FLAG_ZF, new_dst, old_dst));
+  return memory;
+}
+
+template <typename S>
+DEF_SEM(VERR, S src) {
+  state.addr_to_load = ZExtTo<uint64_t>(TruncTo<uint16_t>(Read(src)));
+  return __remill_sync_hyper_call(state, memory,
+                                  SyncHyperCall::kX86VerifySegmentReadable);
+}
+
 DEF_SEM(LGDT, M32 src) {
   memory =
       __remill_sync_hyper_call(state, memory, SyncHyperCall::kAssertPrivileged);
@@ -161,6 +179,12 @@ DEF_ISEL(WRMSR) = DoWRMSR;
 DEF_ISEL(WBINVD) = DoWBINVD;
 DEF_ISEL(LGDT_MEMs_32) = LGDT;
 DEF_ISEL(LIDT_MEMs_32) = LIDT;
+DEF_ISEL(LAR_GPRv_MEMw_32) = LAR<R32W, M16>;
+IF_64BIT(DEF_ISEL(LAR_GPRv_MEMw_64) = LAR<R64W, M16>;)
+DEF_ISEL(LAR_GPRv_GPRv_32) = LAR<R32W, R32>;
+IF_64BIT(DEF_ISEL(LAR_GPRv_GPRv_64) = LAR<R64W, R64>;)
+DEF_ISEL(VERR_MEMw) = VERR<M16>;
+DEF_ISEL(VERR_GPR16) = VERR<R16>;
 DEF_ISEL(MOV_CR_CR_GPR32_CR0) =
     WRITE_CONTROL_REG_32<SyncHyperCall::kX86SetControlReg0>;
 DEF_ISEL(MOV_CR_CR_GPR32_CR1) =
