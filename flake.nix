@@ -84,7 +84,7 @@
               hash = "sha256-7Iv1awZP5lU1LpGqC0nyiMxy0+3WOmM2NTdDYIzKmmk=";
             };
             patches =
-              let dir = ./patches/sleigh;
+              let dir = ./dependencies/sleigh_patches;
               in map (f: dir + "/${f}")
                 (builtins.filter (f: lib.hasSuffix ".patch" f)
                   (builtins.sort builtins.lessThan

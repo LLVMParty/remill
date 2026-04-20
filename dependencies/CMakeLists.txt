@@ -11,6 +11,7 @@ project(dependencies)
 
 option(USE_EXTERNAL_LLVM "Do not compile LLVM as part of the superbuild, use an external one instead" OFF)
 option(USE_SANITIZERS "Use ASan and UBSan" OFF)
+option(ENABLE_SLEIGH "Build and install sleigh into the dependencies prefix" OFF)
 
 if(USE_EXTERNAL_LLVM)
     if(CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin" AND NOT CMAKE_PREFIX_PATH)
@@ -69,4 +70,34 @@ if(USE_EXTERNAL_LLVM)
 else()
     file(REMOVE "${LLVM_CONFIG}")
     include(llvm.cmake)
+endif()
+
+if(ENABLE_SLEIGH)
+    file(GLOB sleigh_patches LIST_DIRECTORIES FALSE
+        "${CMAKE_CURRENT_LIST_DIR}/sleigh_patches/*.patch"
+    )
+    list(SORT sleigh_patches)
+
+    if(NOT sleigh_patches)
+        message(FATAL_ERROR "ENABLE_SLEIGH did not find any patches in sleigh_patches")
+    endif()
+
+    string(REPLACE ";" "\\;" sleigh_patches_arg "${sleigh_patches}")
+
+    simple_git(https://github.com/lifting-bits/sleigh 7c6b742
+        "-Dsleigh_ADDITIONAL_PATCHES:STRING=${sleigh_patches_arg}"
+        "-Dsleigh_ENABLE_TESTS:BOOL=OFF"
+        "-Dsleigh_RELEASE_TYPE:STRING=HEAD"
+        "-Dsleigh_BUILD_SUPPORT:BOOL=ON"
+        "-Dsleigh_BUILD_SLEIGHSPECS:BOOL=ON"
+    )
+
+    ExternalProject_Add_Step(sleigh ppc_e200_spec_install
+        COMMAND
+            "${CMAKE_COMMAND}"
+            "-Dinstall_prefix:PATH=${CMAKE_INSTALL_PREFIX}"
+            "-Dbinary_dir:PATH=<BINARY_DIR>"
+            -P "${CMAKE_CURRENT_LIST_DIR}/build_ppc_e200_sla.cmake"
+        DEPENDEES install
+    )
 endif()
