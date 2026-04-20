@@ -124,9 +124,18 @@ list(APPEND CMAKE_ARGS
     "-DCMAKE_POSITION_INDEPENDENT_CODE:STRING=ON"
     "-DCMAKE_ERROR_DEPRECATED:STRING=OFF"
     "-DCMAKE_ERROR_DEVELOPER_WARNINGS:STRING=OFF"
-    "-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=${CMAKE_MSVC_RUNTIME_LIBRARY}"
     "-DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW" # Needed to make sure gflags respects CMAKE_MSVC_RUNTIME_LIBRARY as their minimum CMake version is older than 3.15.
 )
+
+# Only propagate the MSVC runtime selection if the parent project explicitly set
+# one. Passing an empty CMAKE_MSVC_RUNTIME_LIBRARY to external projects on
+# Windows suppresses the CRT selection and breaks clang's compiler checks.
+if(DEFINED CMAKE_MSVC_RUNTIME_LIBRARY
+   AND NOT CMAKE_MSVC_RUNTIME_LIBRARY STREQUAL "")
+    list(APPEND CMAKE_ARGS
+        "-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=${CMAKE_MSVC_RUNTIME_LIBRARY}"
+    )
+endif()
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
     list(APPEND CMAKE_ARGS
