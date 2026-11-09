@@ -426,11 +426,53 @@ After we find coarse categories and the flows follow these patterns, we determin
 Finally we pass these coarse flows to a final categorizer to attempt to print these into a flow type
 */
 
+// Returns the p-code ops that can execute before the instruction leaves
+// through a call. The p-code CFG sends `CALL`/`CALLIND` straight to the
+// instruction exit (see `PcodeCFGBuilder`), so ops after the first call are
+// unreachable unless an intra-instruction branch targets them. Some
+// specifications put code there that models what happens after the callee
+// returns, e.g. SPARC's
+//
+//    o7 = inst_start; didrestore = 0; delayslot(1); call target;
+//    if (didrestore == 0) goto inst_next; return [o7];
+//
+// which would otherwise make the instruction uncategorizable.
+static std::vector<RemillPcodeOp>
+OpsUpToFirstCall(const std::vector<RemillPcodeOp> &ops) {
+  std::optional<size_t> first_call;
+  for (size_t i = 0; i < ops.size(); ++i) {
+    if (ops[i].op == CPUI_CALL || ops[i].op == CPUI_CALLIND) {
+      first_call = i;
+      break;
+    }
+  }
+  if (!first_call) {
+    return ops;
+  }
+
+  // Keep everything if an intra-instruction branch lands after the call.
+  for (size_t i = 0; i < ops.size(); ++i) {
+    const auto &op = ops[i];
+    if ((op.op == CPUI_BRANCH || op.op == CPUI_CBRANCH) && !op.vars.empty() &&
+        isVarnodeInConstantSpace(op.vars[0])) {
+      const auto target =
+          static_cast<int64_t>(i) + static_cast<int64_t>(op.vars[0].offset);
+      if (target > static_cast<int64_t>(*first_call)) {
+        return ops;
+      }
+    }
+  }
+
+  return std::vector<RemillPcodeOp>(ops.begin(),
+                                    ops.begin() + *first_call + 1);
+}
+
 ControlFlowStructureAnalysis::SleighDecodingResult
 ControlFlowStructureAnalysis::ComputeCategory(
-    const std::vector<RemillPcodeOp> &ops, uint64_t fallthrough_addr,
+    const std::vector<RemillPcodeOp> &all_ops, uint64_t fallthrough_addr,
     DecodingContext entry_context) {
 
+  const auto ops = OpsUpToFirstCall(all_ops);
   auto maybe_cc = CoarseFlows(ops, fallthrough_addr);
   if (!maybe_cc) {
     DLOG(ERROR) << "No coarse flow found";
@@ -439,12 +481,42 @@ ControlFlowStructureAnalysis::ComputeCategory(
 
   auto cc = std::move(*maybe_cc);
 
+  auto context_updater = BuildContextUpdater(entry_context);
+  auto no_context_updates = [&ops, &context_updater]() {
+    return std::all_of(
+        ops.begin(), ops.end(), [&context_updater](const RemillPcodeOp &op) {
+          return !op.outvar.has_value() ||
+                 !context_updater.GetRemillReg(*op.outvar).has_value();
+        });
+  };
+
   auto maybe_ccategory = CoarseCategoryFromFlows(cc);
+
+  // Intra-instruction branches only route control within the instruction's
+  // own p-code, so they do not change where the instruction can exit to.
+  // When they are mixed with exits (e.g. SPARC `restore` in the delay slot of
+  // `ret`, which skips the register-window spill depending on
+  // `DECOMPILE_MODE`), categorize the instruction by its exits alone. The
+  // decoding contexts of the exits are computed linearly, so this is only
+  // done when no context register is written.
+  if (!maybe_ccategory ||
+      *maybe_ccategory != CoarseCategory::kCatNormalWithIntraInstructionFlow) {
+    std::map<size_t, CoarseFlow> exits;
+    for (const auto &[index, flow] : cc) {
+      if (flow.eff != CoarseEffect::kIntraInstruction) {
+        exits.emplace(index, flow);
+      }
+    }
+    if (exits.size() != cc.size() && !exits.empty() && no_context_updates()) {
+      cc = std::move(exits);
+      maybe_ccategory = CoarseCategoryFromFlows(cc);
+    }
+  }
+
   if (!maybe_ccategory) {
     DLOG(ERROR) << "No coarse category found";
     return std::nullopt;
   }
-  auto context_updater = BuildContextUpdater(entry_context);
 
   if (*maybe_ccategory == CoarseCategory::kCatNormalWithIntraInstructionFlow) {
     // our control flow analysis for decoding contexts doesnt handle intraprocedural control flow,

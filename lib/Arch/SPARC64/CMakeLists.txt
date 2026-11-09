@@ -31,6 +31,13 @@ add_library(remill_arch_sparc64 STATIC
   Extract.cpp
 )
 
+# The hand-written SPARC64 semantics depend on SPARC32 semantics files that
+# were removed with the switch to Sleigh, so only the runtime of the
+# Sleigh-based `sparc64_sleigh` architecture is built.
+if(${REMILL_BUILD_SPARC64_RUNTIME} AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  add_subdirectory(Runtime)
+endif()
+
 target_link_libraries(remill_arch_sparc64 PUBLIC
   remill_settings
 )

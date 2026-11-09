@@ -21,9 +21,19 @@
 
 namespace remill {
 
+// `DECOMPILE_MODE` is a fake register of Ghidra's SPARC specification. When
+// it is 1 (its value in `SparcV9.pspec`), `save` and `restore` only move the
+// in/out registers instead of also spilling and filling the register-window
+// backing store through computed register-space addresses (which remill would
+// lift as memory accesses). It is therefore provided as a decoding-context
+// value of 1 rather than as a `State` register.
+static constexpr const char *kDecompileModeReg = "DECOMPILE_MODE";
+
 SleighSPARC32Decoder::SleighSPARC32Decoder(const remill::Arch &arch)
     : SleighDecoder(arch, "SparcV9_32.sla", "SparcV9.pspec",
-                    sleigh::ContextRegMappings({}, {}),
+                    sleigh::ContextRegMappings(
+                        {{kDecompileModeReg, kDecompileModeReg}},
+                        {{kDecompileModeReg, 1}}),
                     {}) {}
 
 
@@ -72,7 +82,7 @@ bool SPARC32Arch::DecodeInstruction(uint64_t address,
 }
 
 DecodingContext SPARC32Arch::CreateInitialContext(void) const {
-  return DecodingContext();
+  return DecodingContext({{kDecompileModeReg, 1u}});
 }
 
 
