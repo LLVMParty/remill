@@ -75,6 +75,9 @@ ArchName GetArchName(std::string_view arch_name) {
   } else if (arch_name == "sparc32_sleigh") {
     return kArchSparc32_SLEIGH;
 
+  } else if (arch_name == "sparc64_sleigh") {
+    return kArchSparc64_SLEIGH;
+
   } else if (arch_name == "ppc") {
     return kArchPPC;
 
@@ -103,6 +106,7 @@ static const std::string_view kArchNames[] = {
     [kArchSparc32] = "sparc32",
     [kArchSparc64] = "sparc64",
     [kArchSparc32_SLEIGH] = "sparc32_sleigh",
+    [kArchSparc64_SLEIGH] = "sparc64_sleigh",
     [kArchThumb2LittleEndian] = "thumb2",
     [kArchPPC] = "ppc",
 };
